@@ -1,0 +1,153 @@
+#!/usr/bin/python2
+
+import math
+import sys
+import argparse
+import re
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+
+class ResultObject(object):
+  def __init__(self, drive):
+    self.drive = drive
+  def __str__(self):
+    return str(self.drive)
+  def __repr__(self):
+    return self.__str__()
+  def __lt__(self, other):
+    if self.crit < other.crit:
+      return False
+    elif self.crit == other.crit and self.free_space >= other.free_space:
+      return False
+    else:
+      return True
+
+def DriveString(drive):
+  if re.match(r"^[A-Z]:$", drive) == None:
+    raise argparse.ArgumentTypeError("Not a drive \"%s\"" % (drive))
+  return drive
+
+def SizeString(size_str):
+  size_name = ("B", "KB", "MB", "GB", "TB")
+  try:
+    (size, unit) = re.match(r"(\d+)(.*)", size_str).groups()
+    i = size_name.index(unit)
+  except:
+    raise argparse.ArgumentTypeError("Not in the required format")
+  p = math.pow(1024,i)
+  s = float(size)*p
+  return int(s)
+
+def convert_size(size, unit=None):
+  if unit == "B" or int(size) == 0:
+    return (str(int(size)), "B")
+  size_name = ("B", "KB", "MB", "GB", "TB")
+  if unit == None:
+    i = int(math.floor(math.log(size,1024)))
+  else:
+    i = size_name.index(unit)
+  p = math.pow(1024,i)
+  s = round(size/p,2)
+  return (str(s), size_name[i])
+
+if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='WMI memory usage checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-W', '--warning', help="Warning level (default: 2GB)", type=SizeString, default="2GB")
+  parser.add_argument('-C', '--critical', help="Critical level (default: 500MB)", type=SizeString, default="500MB")
+  parser.add_argument('-U', '--unit', help="Display Unita", choices=("B", "KB", "MB", "GB", "TB"))
+  parser.add_argument('-d', '--drives', help="Drives to checks (default all)", type=DriveString, nargs='+')
+  parser.add_argument('-i', '--ignore-drives', help="Exclude drives", type=DriveString, nargs='+')
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  unit = args.unit
+
+  query = "SELECT DeviceID,FreeSpace,Size FROM Win32_LogicalDisk WHERE DriveType=3"
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  try:
+    out=wsman.search_wql(query)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  out=wsman.wql_group_result(out, "DeviceID")
+
+  unit=args.unit
+
+  if args.drives==None:
+    drives=out.keys()
+  else:
+    drives=args.drives
+
+  if args.ignore_drives != None:
+    drives=[x for x in drives if x not in args.ignore_drives]
+
+  if len(drives) == 0:
+    print("UNKNOW: No drives selected")
+    sys.exit(3)
+ 
+  ret_status = 0
+  status_outputs=[]
+  perf_outputs=[]
+  results=[]
+  for drive in drives:
+    try:
+      drive_data=out[drive]
+    except:
+      print("UNKNOWN: DRIVE %s Not Found" % (drive))
+      ret_status = 3
+      continue
+    free_space = int(drive_data['FreeSpace'])
+    total_space = int(drive_data['Size'])
+
+    used_space = total_space - free_space
+    warn_space = total_space - args.warning
+    crit_space = total_space - args.critical
+
+    # Fallback - if the thresholds are larger than total_space we use 10% and 5% as threshold
+    if warn_space < 0 or crit_space < 0:
+      warn_space = total_space * 0.90
+      crit_space = total_space * 0.95
+
+    result=ResultObject(drive)
+    result.free_space = free_space
+    if used_space > crit_space:
+      ret_status = 2
+      status = "DISK %s CRITICAL" % (drive)
+      result.crit=2
+    elif used_space > warn_space:
+      if ret_status != 2:
+        ret_status = 1
+      status = "DISK %s WARNING" % (drive)
+      result.crit=1
+    else:
+      status = "DISK %s OK" % (drive)
+      result.crit=0
+
+    (human_free, unit) = convert_size(free_space, args.unit)
+
+    result.msg_out=("%s - free space: %s%s" % (status, human_free, unit))
+    result.perf_out=("'disk_%s'=%s%s;%s;%s;0;%s" % (drive, used_space, 'B', warn_space, crit_space, total_space))
+    results.append(result)
+
+  sort_results = sorted(results)
+  if len(sort_results) > 1:
+    perfs=map(lambda x: x.perf_out, sort_results)
+    msgs=map(lambda x: x.msg_out, sort_results)
+    print("%s | %s\n%s" % (msgs[0], reduce(lambda x1, x2: x1+" "+x2, perfs), reduce(lambda x1, x2: x1+"\n"+x2, msgs[1:])))
+  else:
+    print("%s | %s" % (sort_results[0].msg_out, sort_results[0].perf_out))
+  sys.exit(ret_status)

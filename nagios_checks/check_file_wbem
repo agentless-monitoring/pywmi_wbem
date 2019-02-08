@@ -1,0 +1,76 @@
+#!/usr/bin/python2
+
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+from datetime import datetime, timedelta
+import pytz
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='WMI File checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-m', '--minutes', help="Last modified critical bound", type=int, required=False)
+  parser.add_argument('-f', '--filename', help="File to check against", type=str, required=True)
+  parser.add_argument('-w', '--is-warning', help="Error is a Warning not a Critical state", action='store_true', default=False)
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  if args.filename.count(":\\") > 0 and not args.filename.count("\\\\"):
+    filename = args.filename.replace("\\", "\\\\")
+  else:
+    filename = args.filename
+
+  query = "SELECT LastModified, FileSize FROM CIM_DataFile WHERE Name='%s'" % (filename)
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  try:
+    out=wsman.search_wql(query)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  if len(out) == 0:
+    print("FILE CRITICAL - File doesn't exist (%s)" % (filename))
+    sys.exit(2)
+
+
+  file_size = out['FileSize']
+  perfdata = "'file_%s'=%ib" % (args.filename, file_size)
+
+  if args.minutes == None:
+    print("FILE OK - File exists | %s" % (perfdata))
+    sys.exit(0)
+
+  ret_status = 0
+  last_modified = out['LastModified']
+
+  utc=pytz.UTC
+  now_utc=utc.localize(datetime.utcnow())
+  time_diff=now_utc - last_modified
+  compare_to=timedelta(minutes=args.minutes)
+
+  if time_diff > compare_to:
+    if args.is_warning:
+      ret_status=1
+      ret_type = "WARNING"
+    else:
+      ret_status=2
+      ret_type = "CRITICAL"
+    status="FILEAGE %s - Last modified: %s (%s ago)" % (ret_type, last_modified, time_diff)
+  else:
+    status="FILEAGE OK - Last modified: %s (%s ago)" % (last_modified, time_diff)
+  print("%s | %s" % (status, perfdata))
+
+  sys.exit(ret_status)

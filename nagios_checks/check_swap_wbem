@@ -1,0 +1,67 @@
+#!/usr/bin/python2
+
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+
+if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='WMI swap checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-W', '--warning', help="Warning level (default: 70) in %%", type=int, default=70)
+  parser.add_argument('-C', '--critical', help="Critical level (default: 90) in %%", type=int, default=90)
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  warn = args.warning
+  crit = args.critical
+
+  query_check="SELECT FreeVirtualMemory,TotalVirtualMemorySize FROM win32_operatingsystem"
+  query_perf="SELECT CurrentUsage, AllocatedBaseSize FROM Win32_PageFileUsage"
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  try:
+    out=wsman.search_wql(query_perf)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  swap_usage = int(out['CurrentUsage'])
+  swap_max = int(out['AllocatedBaseSize'])
+
+  try:
+    out=wsman.search_wql(query_check)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  virtual_free = (float(out['FreeVirtualMemory'])/float(out['TotalVirtualMemorySize']))*100
+  virtual_used = 100 - virtual_free
+
+  if virtual_used >= crit:
+    status = "SWAP CRITICAL"
+    ret_status = 2
+  elif virtual_used >= warn:
+    status = "SWAP WARNING"
+    ret_status = 1
+  else:
+    status = "SWAP OK"
+    ret_status = 0
+
+  print("%s - %.2f%% virtual memory used | swap=%sMB;;;0;%i" % (status, virtual_used, swap_usage, swap_max))
+  sys.exit(ret_status)

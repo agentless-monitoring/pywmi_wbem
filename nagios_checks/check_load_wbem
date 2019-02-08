@@ -1,0 +1,79 @@
+#!/usr/bin/python2 
+
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+
+if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='WMI load checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-W', '--warning', help="Warning level (default: 70)", type=int, default=70)
+  parser.add_argument('-C', '--critical', help="Critical level (default: 90)", type=int, default=90)
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  query="SELECT PercentProcessorTime FROM Win32_PerfFormattedData_PerfOS_Processor WHERE Name = '_Total'"
+  query_per_process="SELECT Name, IDProcess, PercentProcessorTime FROM Win32_PerfFormattedData_PerfProc_Process WHERE CreatingProcessID!=0 AND PercentProcessorTime!=0"
+  query_command_line="SELECT CommandLine FROM Win32_Process WHERE ProcessId='%i'"
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  try:
+    out=wsman.search_wql(query)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: %s " % (err.message))
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  if len(out) == 0:
+    print("UNKNOWN: No data returned")
+    sys.exit(3)
+
+  load = int(out['PercentProcessorTime'])
+  warn_load = args.warning
+  crit_load = args.critical
+
+  if load >= crit_load:
+    status = "LOAD CRITICAL"
+    ret_status = 2
+  elif load >= warn_load:
+    status = "LOAD WARNING"
+    ret_status = 1
+  else:
+    status = "LOAD OK"
+    ret_status = 0
+
+  print("%s - %i%% | load=%s%%;%s;%s;0;100" % (status, load, load, warn_load, crit_load))
+
+  if ret_status != 0:
+    try:
+      out=wsman.search_wql(query_per_process)
+    except WSManFault as err:
+      print("UNKNOWN: WSManFault: %s" % (err))
+      sys.exit(3)
+    except Exception as err:
+      print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+      sys.exit(3)
+
+    out=wsman.wql_group_result(out, "Name")
+    top_processes=sorted(out, key=lambda x: out[x]['PercentProcessorTime'], reverse=True)
+    
+    for i in top_processes:
+      try:
+        cmd_out = wsman.search_wql(query_command_line % (out[i]['IDProcess']))
+      except Exception:
+        cmd_out = {'CommandLine': ''}
+      print("Process: %s - %i%% (%i: %s)" % (i, out[i]['PercentProcessorTime'], out[i]['IDProcess'], str(cmd_out['CommandLine']).replace("\\", "\\\\")))
+  
+  sys.exit(ret_status)

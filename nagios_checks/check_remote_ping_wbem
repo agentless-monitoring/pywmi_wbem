@@ -1,0 +1,77 @@
+#!/usr/bin/python2
+
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='WMI Remote Ping checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-r', '--remote-ip', help="Remote IP to ping", type=str, required=True)
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  query = "SELECT StatusCode FROM Win32_PingStatus where ResolveAddressNames = 'True' and address = '%s'" % (args.remote_ip)
+ 
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  try:
+    out=wsman.search_wql(query)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  ret_status = 0
+  ping_status = out['StatusCode']
+
+  if ping_status == 11001:
+    reason = "Buffer Too Small"
+  elif ping_status == 11002:
+    reason = "Destination Net Unreachable"
+  elif ping_status == 11003:
+    reason = "Destination Host Unreachable"
+  elif ping_status == 11004:
+    reason = "Destination Protocol Unreachable"
+  elif ping_status == 11005:
+    reason = "Destination Port Unreachable"
+  elif ping_status == 11006:
+    reason = "No Resources"
+  elif ping_status == 11007:
+    reason = "Bad Option"
+  elif ping_status == 11008:
+    reason = "Hardware Error"
+  elif ping_status == 11009:
+    reason = "Packet Too Big"
+  elif ping_status == 11010:
+    reason = "Request Timed Out"
+  elif ping_status == 11011:
+    reason = "Bad Request"
+  elif ping_status == 11012:
+    reason = "Bad Route"
+  elif ping_status == 11013:
+    reason = "TimeToLive Expired Transit"
+  elif ping_status == 11014:
+    reason = "TimeToLive Expired Reassembly"
+  else:
+    reason = str(ping_status)
+
+  if ping_status == 0:
+    status = "PING OK"
+  else:
+    status = "PING CRITICAL: %s" % (reason)
+    ret_status = 2
+
+  print("%s" % (status))
+
+  sys.exit(ret_status)

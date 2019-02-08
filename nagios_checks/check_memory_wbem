@@ -1,0 +1,118 @@
+#!/usr/bin/python2
+
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+
+def convert_size_auto(size, unit=None):
+  if unit == "B" or int(size) == 0:
+    return (str(int(size)), "B")
+  size_name = ("B", "KB", "MB", "GB", "TB")
+  if unit == None:
+    i = int(math.floor(math.log(size,1024)))
+  else:
+    i = size_name.index(unit)
+  p = math.pow(1024,i)
+  s = round(size/p,2)
+  return (str(s), size_name[i])
+
+def convert_size(size, unit="MB"):
+  if unit == "B":
+    return str(int(size))
+  size_name = ("B", "KB", "MB", "GB", "TB")
+  i = size_name.index(unit)-1
+  p = math.pow(1024,i)
+  s = round(size/p,2)
+  return str(s)
+
+if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='WMI memory usage checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-W', '--warning', help="Warning level (default: 70)", type=int, default=70)
+  parser.add_argument('-C', '--critical', help="Critical level (default: 90)", type=int, default=90)
+  parser.add_argument('-U', '--unit', help="Unit for perfomance data", choices=("B", "KB", "MB", "GB", "TB"), default="MB")
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+  unit = args.unit
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  query="SELECT FreePhysicalMemory,TotalVisibleMemorySize FROM Win32_OperatingSystem"
+  query_per_process="SELECT Name, IDProcess, PageFileBytes FROM Win32_PerfFormattedData_PerfProc_Process WHERE CreatingProcessID!=0"
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  try:
+    out=wsman.search_wql(query)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  total_memory = int(out['TotalVisibleMemorySize'])
+  free_memory = int(out['FreePhysicalMemory'])
+  used_memory = total_memory-free_memory
+
+  warn_memory = math.ceil((args.warning/100.0)*total_memory)
+  crit_memory = math.ceil((args.critical/100.0)*total_memory)
+
+  percentage_free = (free_memory/float(total_memory))*100
+
+  if used_memory >= crit_memory:
+    status = "MEMORY CRITICAL"
+    ret_status = 2
+  elif used_memory >= warn_memory:
+    status = "MEMORY WARNING"
+    ret_status = 1
+  else:
+    status = "MEMORY OK"
+    ret_status = 0
+
+  perf_used = convert_size(used_memory, unit)
+  perf_warn = convert_size(warn_memory, unit)
+  perf_crit = convert_size(crit_memory, unit)
+  perf_total = convert_size(total_memory, unit)
+
+  print("%s - %.4f%% free | memory=%s%s;%s;%s;0;%s" % (status, percentage_free, perf_used, unit, perf_warn, perf_crit, perf_total))
+
+  if ret_status != 0:
+    try:
+      out=wsman.search_wql(query_per_process)
+    except WSManFault as err:
+      print("UNKNOWN: WSManFault: %s" % (err))
+      sys.exit(ret_status)
+    except Exception as err:
+      print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+      sys.exit(ret_status)
+
+    out=wsman.wql_group_result(out, "Name")
+    top10_processes=sorted(out, key=lambda x: out[x]['PageFileBytes'], reverse=True)[:10]
+
+    if len(top10_processes) != 0:
+      where = "ProcessId='%s'" % out[top10_processes[0]]['IDProcess']
+      for i in top10_processes[1:]:
+        where = where + " OR ProcessId='%s'" % out[i]['IDProcess']
+
+      new_wql = "SELECT ProcessId, CommandLine FROM Win32_Process WHERE " + where
+      cmd_out = wsman.search_wql(new_wql)
+      cmd_out = wsman.wql_group_result(cmd_out, "ProcessId")
+
+    for i in top10_processes:
+      human_size, size_unit = convert_size_auto(int(out[i]['PageFileBytes']))
+      process_id = out[i]['IDProcess']
+      try:
+        cmd_line = str(cmd_out[out[i]['IDProcess']]['CommandLine']).replace("\\", "\\\\")
+      except:
+        cmd_line = ""
+      print("Process: %s - %s%s (%i: %s)"  % (i, human_size, size_unit, process_id, cmd_line))
+
+  sys.exit(ret_status)

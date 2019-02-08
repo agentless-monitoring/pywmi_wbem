@@ -1,0 +1,140 @@
+#!/usr/bin/python2
+
+from __future__ import print_function
+import math
+import sys
+import argparse
+import re
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+from enum import Enum
+
+class CompareMode(Enum):
+    EQ = 'eq'
+    LT = 'lt'
+    GT = 'gt'
+
+    def __str__(self):
+        return self.value
+
+def check_positive(value):
+  ivalue = int(value)
+  if ivalue <= 0:
+    raise argparse.ArgumentTypeError("count %s is not a positive number" % value)
+  return ivalue
+
+def handle_ok(matching, wql_out):
+  count_matching = len(matching)
+  if count_matching > 1:
+    return "OK - %d processes running | number_processes=%d;;;0;\n" % (count_matching, count_matching)
+  else:
+    return "OK - Running | process=%sKB;;;0;\n" % (wql_out[matching[0]]['PageFileUsage'])
+
+if __name__ == '__main__':
+
+  parser = argparse.ArgumentParser(description='WMI Process checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-p', '--process', help="Process Name to check", type=str, required=True)
+  parser.add_argument('-r', '--cmdline-regex', help="Regular Expression to run against cmdline", type=str)
+  parser.add_argument('-C', '--count', help="Count of matching processes allowed running", type=check_positive, default=1)
+  parser.add_argument('-w', '--is-warning', help="Not running is a Warning not a Critical state", action='store_true', default=False)
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+  parser.add_argument('-m', '--compare-mode', help="Compare mode to decide how count is evaluated (default eq)", type=CompareMode, default=CompareMode.EQ, choices=list(CompareMode))
+  parser.add_argument('-d', '--debug', help="enable debug print", action='store_true')
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  cmd = args.process
+  regex = args.cmdline_regex
+  count = args.count
+  mode = args.compare_mode
+  debug = args.debug
+
+  if args.is_warning:
+    not_running_status = 1
+    not_running_string = "WARNING"
+  else:
+    not_running_status = 2
+    not_running_string = "CRITICAL"
+
+  cmds = cmd.split("|")
+
+  query="SELECT ProcessId, Caption, CommandLine, PageFileUsage FROM Win32_Process WHERE Name='%s'" % (cmds[0])
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  for additional_cmd in cmds[1:]:
+    query = query + " OR Name='%s'" % (additional_cmd)
+
+  try:
+    out=wsman.search_wql(query)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  out = wsman.wql_group_result(out, "ProcessId")
+
+  output = ""
+  ret_status = 0
+  matching=[]
+  for process in out:
+    cmdline = str(out[process]['CommandLine'])
+    if debug == True:
+      print("|%s|" % (cmdline))
+    if regex == None or (regex and re.match(regex, cmdline)):
+      if debug == True:
+        print("matched (regex: %s)" % regex)
+      matching.append(process)
+
+  count_matching = len(matching)
+
+  if mode == CompareMode.GT:
+    if count_matching <= count:
+      ret_status = not_running_status
+     
+      message = ""
+      if count_matching == 0:
+        message = "No process running"
+      else:
+        message = "Not enough processes running"
+
+      output = output + not_running_string + " - %s | number_processes=%d;;;0;\n" % (message, count_matching)
+    else:
+      output = output + handle_ok(matching, out) 
+  elif mode == CompareMode.LT:
+    if count_matching >= count:
+      ret_status = not_running_status
+      output = output + not_running_string + " - Too many processes running | number_processes=%d;;;0;\n" % (count_matching)
+    elif count_matching == 0:
+      ret_status = not_running_status
+      output = output + not_running_string + " - No process running | number_processes=%d;;;0;\n" % (count_matching)
+    else:
+      output = output + handle_ok(matching, out) 
+  #Equal mode
+  else:
+    if count_matching < count:
+      ret_status = not_running_status
+   
+      message = ""
+      if count_matching == 0:
+        message = "No process running"
+      else:
+        message = "Not enough processes running"
+
+      output = output + not_running_string + " - %s | number_processes=%d;;;0;\n" % (message, count_matching)
+    elif count_matching > count:
+      ret_status = not_running_status
+      output = output + not_running_string + " - Too many processes running | number_processes=%d;;;0;\n" % (count_matching)
+    else:
+      output = output + handle_ok(matching, out)
+
+  print(output, end="")
+  sys.exit(ret_status)

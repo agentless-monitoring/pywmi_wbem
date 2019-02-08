@@ -1,0 +1,55 @@
+#!/usr/bin/python2
+
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='WMI Harddrive S.M.A.R.T checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  query = "SELECT DeviceId, Status FROM Win32_DiskDrive"
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+
+  try:
+    out= wsman.search_wql(query)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)
+
+  out= wsman.wql_group_result(out, "DeviceID")
+
+  drives=sorted(out.keys())
+
+  ret_status = 0
+  for drive in drives:
+    drive_data=out[drive]
+    smart_status = drive_data['Status']
+
+    if smart_status == "OK":
+      status = "SMART %s OK" % (drive)
+    elif smart_status == "Degraded" or smart_status == "Pred Fail":
+      if ret_status != 2:
+        ret_status = 1
+      status = "SMART %s WARNING (%s)" % (drive, smart_status)
+    else:
+      status = "DISK %s CRITICAL (%s)" % (drive, smart_status)
+      ret_status = 2
+
+    print("%s" % (status))
+
+  sys.exit(ret_status)

@@ -1,0 +1,130 @@
+#!/usr/bin/python2
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+from lxml import objectify
+from lxml.etree import XMLSyntaxError
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='WMI Remote Ping checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)  
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)  
+ 
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+  
+  update_script = """Try {
+  [Threading.Thread]::CurrentThread.CurrentUICulture = 'en-US';
+  $session = New-Object -com "Microsoft.Update.Session"
+  $searcher = $session.CreateUpdateSearcher()
+  $results = $searcher.Search("(IsAssigned=1 and IsHidden=0 and IsInstalled=0) or (RebootRequired=1)")
+} Catch {
+  $ex=$_.Exception
+  $ex.Message
+  exit
+}
+$toXml = [System.Collections.ArrayList]@()
+if ($results.Updates -ne $null) {
+  foreach ($i in 0..($results.Updates.Count-1)) {
+    $item = $results.Updates.Item($i)
+    $toXml.Add(($item | Select-Object Title, Description, IsPresent, MsrcSeverity, RebootRequired)) | out-null
+  }
+}
+Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)""" 
+  out = ""
+  try:
+    out=wsman.run_powershell_script(script = update_script)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+err.message)
+    sys.exit(3)
+  #except Exception as err:
+  #  print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+  #  sys.exit(3)  
+ 
+  stdout = out.get("stdout", None)
+  stderr = out.get("stderr", None)
+
+  if stdout is None:  
+    print("UNKNOWN: No response from server")
+    sys.exit(3)
+
+  #debug=open("debug.xml", "w")
+  #debug.write(stdout)
+  #debug.close()
+  try:
+    stdout_xml = objectify.fromstring(stdout)
+    object_path = objectify.ObjectPath("Objects")
+    object_el = object_path.find(stdout_xml)
+  except XMLSyntaxError:
+    print("UNKNOWN: %s (stderr: %s)" % (stdout, stderr))
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s: %s (stdout: %s, stderr: %s)" % (type(err).__name__, err, stdout, stderr))
+    sys.exit(3)
+	  
+  critical_count = 0
+  warning_count = 0
+  low_count = 0
+  unspecified_count = 0
+  not_present_count = 0
+
+  for object in object_el.iterchildren():
+   prop_path = objectify.ObjectPath("Object.Property")
+   prop_el = prop_path.find(object)
+   for property in prop_el:
+     if property.attrib["Name"] == "MsrcSeverity":
+       if property.text == "Critical":
+         critical_count += 1
+       elif property.text == "Important" or property.text == "Moderate":
+         warning_count += 1
+       elif property.text == "Low":
+         low_count += 1
+       else:
+         unspecified_count += 1
+     if property.attrib["Name"] == "IsPresent":
+       if property.text == "False":
+         not_present_count += 1
+
+  total_count = critical_count + warning_count + low_count + unspecified_count
+
+  status = None
+  code = 3
+  
+  # No critical output for updates      
+  #if critical_count > 0:
+  #  status = "CRITICAL"
+  #   code = 1
+
+  if warning_count > 0:
+    if not status:
+      status = "WARNING"
+      code = 1
+  if (low_count + unspecified_count) > 0:
+    if not status:
+      status = "WARNING"
+      code = 1
+  if total_count == 0:
+    if not status:
+      status = "OK"
+      print("UPDATE OK - No updates need to be installed")
+      code = 0
+
+  if status is not "OK":
+    if(total_count > 1):
+      print("UPDATE %s - There are in total %s Updates waiting to be installed:" % (status, total_count))
+    else:
+      print("UPDATE %s - There is %s Update waiting to be installed:" % (status, total_count))
+
+    print("%sx Update(s) which are tagged as Critical" % (critical_count))
+    print("%sx Update(s) which are tagged as Warning" % (warning_count))
+    print("%sx Update(s) which have a low or unspecified severity" % (low_count + unspecified_count))
+    print("%sx are not present and waiting to be downloaded" % (not_present_count))
+    sys.exit(code)
