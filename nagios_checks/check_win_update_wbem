@@ -17,10 +17,10 @@ if __name__ == '__main__':
   if args.authorization != None:
     username, password = args.authorization.split(":")
   else:
-    username, password = (None, None)  
- 
+    username, password = (None, None)
+
   wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
-  
+
   update_script = """Try {
   [Threading.Thread]::CurrentThread.CurrentUICulture = 'en-US';
   $session = New-Object -com "Microsoft.Update.Session"
@@ -43,33 +43,30 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
   try:
     out=wsman.run_powershell_script(script = update_script)
   except WSManFault as err:
-    print("UNKNOWN: WSManFault: "+err.message)
+    print("UNKNOWN: WSManFault: "+ err.message)
     sys.exit(3)
-  #except Exception as err:
-  #  print("UNKNOWN: %s: %s" % (type(err).__name__, err))
-  #  sys.exit(3)  
+  except Exception as err:
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    sys.exit(3)  
  
-  stdout = out.get("stdout", None)
-  stderr = out.get("stderr", None)
+  stdout = out.get("stdout", '')
+  stderr = out.get("stderr", '')
 
-  if stdout is None:  
-    print("UNKNOWN: No response from server")
+  if not stdout:  
+    print("UNKNOWN: No data avaiable")
     sys.exit(3)
 
-  #debug=open("debug.xml", "w")
-  #debug.write(stdout)
-  #debug.close()
   try:
     stdout_xml = objectify.fromstring(stdout)
     object_path = objectify.ObjectPath("Objects")
     object_el = object_path.find(stdout_xml)
   except XMLSyntaxError:
-    print("UNKNOWN: %s (stderr: %s)" % (stdout, stderr))
+    print("UNKNOWN: %s\n %s" % (stdout, stderr))
     sys.exit(3)
   except Exception as err:
-    print("UNKNOWN: %s: %s (stdout: %s, stderr: %s)" % (type(err).__name__, err, stdout, stderr))
+    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
     sys.exit(3)
-	  
+
   critical_count = 0
   warning_count = 0
   low_count = 0
@@ -98,10 +95,6 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
   status = None
   code = 3
   
-  # No critical output for updates      
-  #if critical_count > 0:
-  #  status = "CRITICAL"
-  #   code = 1
 
   if warning_count > 0:
     if not status:
@@ -127,4 +120,5 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
     print("%sx Update(s) which are tagged as Warning" % (warning_count))
     print("%sx Update(s) which have a low or unspecified severity" % (low_count + unspecified_count))
     print("%sx are not present and waiting to be downloaded" % (not_present_count))
-    sys.exit(code)
+
+  sys.exit(code)

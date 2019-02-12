@@ -148,7 +148,7 @@ class WSMan():
     self.command = {'text': "",  'arguments' : []}
     self.maxenvelope = "512000"
     #only for powershell
-    self.operationtimeout = "PT60.000S"
+    self.operationtimeout = "PT120.000S"
     
         
   def generate_message(self, action, to, resource_uri, uuid, sub_body=None, sub_header=None, nsmap=None):
