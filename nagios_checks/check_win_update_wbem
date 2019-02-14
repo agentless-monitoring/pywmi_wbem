@@ -19,7 +19,7 @@ if __name__ == '__main__':
   else:
     username, password = (None, None)
 
-  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password)
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password, timeout=300)
 
   update_script = """Try {
   [Threading.Thread]::CurrentThread.CurrentUICulture = 'en-US';
@@ -46,25 +46,37 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
     print("UNKNOWN: WSManFault: "+ err.message)
     sys.exit(3)
   except Exception as err:
-    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    print("UNKNOWN: %s" % (type(err).__name__))
     sys.exit(3)  
  
   stdout = out.get("stdout", '')
   stderr = out.get("stderr", '')
 
   if not stdout:  
-    print("UNKNOWN: No data avaiable")
+    print("UNKNOWN: No data available")
     sys.exit(3)
 
   try:
     stdout_xml = objectify.fromstring(stdout)
     object_path = objectify.ObjectPath("Objects")
     object_el = object_path.find(stdout_xml)
-  except XMLSyntaxError:
-    print("UNKNOWN: %s\n %s" % (stdout, stderr))
+  except XMLSyntaxError as err:
+    message = ''
+    if stdout:
+      stdout = stdout.decode('utf-8-sig')
+      stdout = stdout.encode('utf-8')
+      stdout = stdout.replace('\n', '')
+      stdout = stdout.replace('\r', '')
+    if stderr:
+      stderr = stderr.decode('utf-8-sig')
+      stderr = stderr.encode('utf-8')
+      stderr = stderr.replace('\n', '')
+      stderr = stderr.replace('\r', '')
+
+    print("UNKNOWN: %s %s" % (stdout, stderr))
     sys.exit(3)
   except Exception as err:
-    print("UNKNOWN: %s: %s" % (type(err).__name__, err))
+    print("UNKNOWN: %s" % (type(err).__name__))
     sys.exit(3)
 
   critical_count = 0
