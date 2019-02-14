@@ -106,7 +106,7 @@ class WSMAN_Constants:
 
 class WSMan():  
   
-  def __init__(self, server, port = None, tls=False, username=None, password=None):
+  def __init__(self, server, port = None, tls=False, username=None, password=None, timeout=60):
     self.adapter = None
     self.tls=tls
     self.username=username
@@ -133,7 +133,7 @@ class WSMan():
 
     self.host = "%s://%s:%i/wsman" % (protocol, self.server, port)	   
     self.headers = {"Content-Type" : "%s; charset=UTF-8" % (WSMAN_Constants.CONTENT_TYPE)}
-    self.timeout = 60
+    self.timeout = timeout
     self.resource_uri = ""
 	
     #state specific
@@ -148,7 +148,7 @@ class WSMan():
     self.command = {'text': "",  'arguments' : []}
     self.maxenvelope = "512000"
     #only for powershell
-    self.operationtimeout = "PT120.000S"
+    self.operationtimeout = "PT%s.000S" % (timeout)
     
         
   def generate_message(self, action, to, resource_uri, uuid, sub_body=None, sub_header=None, nsmap=None):
