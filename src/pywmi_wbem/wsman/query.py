@@ -234,7 +234,7 @@ class WSMan():
 
     root=self.generate_message(WSMAN_Constants.PULL, self.host, resource_uri, uuid.uuid4(), pull_element)
     msg=ET.tostring(root)
-    r=self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=60)
+    r=self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=self.timeout)
     self.check_response(r)
 	
   #called by check
@@ -331,7 +331,7 @@ class WSMan():
     enumerate = WSMAN_Constants.ENUMERATE
     root=self.generate_message(enumerate, self.host, resource_uri, uuid.uuid4(), enumerate_element)
     msg=ET.tostring(root)
-    r=self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=60)
+    r=self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=self.timeout)
     self.check_response(r)  
 	  
   def wql_parse_pull_response(self):   
