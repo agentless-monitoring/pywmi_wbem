@@ -162,7 +162,6 @@ class WSMan():
     root = ET.Element(WSMAN_Constants.ENVELOPE_TAG, nsmap=nsmap)
     header = ET.SubElement(root, WSMAN_Constants.HEADER_TAG)
 
-    
     if sub_header != None:
       for sub_header_element in sub_header:
         header.append(sub_header_element)
@@ -237,7 +236,7 @@ class WSMan():
     r=self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=self.timeout)
     self.check_response(r)
 	
-  #called by check
+  #called directly by wql nagios checks (load,memory,disc)
   def wql_group_result(self, output, group_key):  
     ret={}
     if isinstance(output, dict):
@@ -386,12 +385,12 @@ class WSMan():
       if has_wsman_details.hasattr(fault):
         details=has_wsman_details.find(fault)
         if details.attrib.__contains__("Code") and details.attrib["Code"] == "2150858793":
-          raise WSManFault_NoShellOutput("")          
+          #retry  
+          self.shell_fetch_output(0)      
         else:
           detail_text=details.Message.text
           if detail_text != None:
             raise WSManFault(detail_text.encode('utf-8'))
-      raise WSManFault(fault_text.encode('utf-8'))
 	
   def run_powershell_script(self, script=""):   
         
