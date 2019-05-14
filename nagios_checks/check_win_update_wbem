@@ -106,9 +106,8 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
 
   status = None
   code = 3
-  
 
-  if warning_count > 0:
+  if critical_count > 0 or warning_count > 0:
     if not status:
       status = "WARNING"
       code = 1
