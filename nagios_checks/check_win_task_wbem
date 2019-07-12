@@ -194,7 +194,7 @@ Write-Host ($ArrTasks | Select TaskName, TaskFolder, IsEnabled, LastTaskResult, 
          sys.exit(3)
 
        #Explanations for the error code can be found here: https://en.wikipedia.org/wiki/Windows_Task_Scheduler
-       if rcode_hex in ['0x00000000', '0x00041300', '0x00041300', '0x00041300', '0x00041300']:
+       if rcode_hex in ['0x00000000', '0x00041300', '0x00041301', '0x00041302', '0x00041303']:
          tasks.append("OK for task %s: %s" % (name, scheduler_message))
        
        elif not scheduler_message:
