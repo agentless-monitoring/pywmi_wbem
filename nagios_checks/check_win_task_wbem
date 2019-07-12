@@ -8,58 +8,60 @@ from lxml import objectify
 from lxml.etree import XMLSyntaxError
 
 error_code = {
-  0x0 : 'The operation completed successfully.',
-  0x1 : 'Incorrect function called or unknown function called.',
-  0x2 : 'File not found.',
-  0x10 : 'The environment is incorrect.',
-  0x00041300 : 'Task is ready to run at its next scheduled time.',
-  0x00041301 : 'The task is currently running.',
-  0x00041302 : 'The task has been disabled.',
-  0x00041303 : 'The task has not yet run.',
-  0x00041304 : 'There are no more runs scheduled for this task.',
-  0x00041305 : 'One or more of the properties that are needed to run this task have not been set.',
-  0x00041306 : 'The last run of the task was terminated by the user.',
-  0x00041307 : 'Either the task has no triggers or the existing triggers are disabled or not set.',
-  0x00041308 : 'Event triggers do not have set run times.', 
-  0x80010002 : 'Call was canceled by the message filter.',
-  0x80041309 :  """A task's trigger is not found.""",
-  0x8004130A : 'One or more of the properties required to run this task have not been set.',
-  0x8004130B : 'There is no running instance of the task.',
-  0x8004130C : 'The Task Scheduler service is not installed on this computer.',
-  0x8004130D : 'The task object could not be opened.',
-  0x8004130E : 'The object is either an invalid task object or is not a task object.',
-  0x8004130F : 'No account information could be found in the Task Scheduler security database for the task indicated.',
-  0x80041310 : 'Unable to establish existence of the account specified.',
-  0x80041311 : 'Corruption was detected in the Task Scheduler security database',
-  0x80041312 : 'Task Scheduler security services are available only on Windows NT.',
-  0x80041313 : 'The task object version is either unsupported or invalid.',
-  0x80041314 : 'The task has been configured with an unsupported combination of account settings and run time options.',
-  0x80041315 : 'The Task Scheduler Service is not running.',
-  0x80041316 : 'The task XML contains an unexpected node.',
-  0x80041317 : 'The task XML contains an element or attribute from an unexpected namespace.',
-  0x80041318 : 'The task XML contains a value which is incorrectly formatted or out of range.',
-  0x80041319 : 'The task XML is missing a required element or attribute.',
-  0x8004131A : 'The task XML is malformed.',
-  0x0004131B : 'The task is registered, but not all specified triggers will start the task.',
-  0x0004131C : 'The task is registered, but may fail to start. Batch logon privilege needs to be enabled for the task principal.',
-  0x8004131D : 'The task XML contains too many nodes of the same type.',
-  0x8004131E : 'The task cannot be started after the trigger end boundary.',
-  0x8004131F : 'An instance of this task is already running.',
-  0x80041320 : 'The task will not run because the user is not logged on.', 
-  0x80041321 : 'The task image is corrupt or has been tampered with.',
-  0x80041322 : 'The Task Scheduler service is not available.',
-  0x80041323 : 'The Task Scheduler service is too busy to handle your request. Please try again later.',
-  0x80041324 : 'The Task Scheduler service attempted to run the task, but the task did not run due to one of the constraints in the task definition.',
-  0x00041325 : 'The Task Scheduler service has asked the task to run.',
-  0x80041326 : 'The task is disabled.',
-  0x80041327 : 'The task has properties that are not compatible with earlier versions of Windows.',
-  0x80041328 : 'The task settings do not allow the task to start on demand.',
-  0xC000013A : 'The application terminated as a result of a CTRL+C.',
-  0xC0000142 : 'The application failed to initialize properly.',
+  '0x00000000' : 'The operation completed successfully.',
+  '0x00000001' : 'Incorrect function called or unknown function called.',
+  '0x00000002' : 'File not found.',
+  '0x00000010' : 'The environment is incorrect.',
+  '0x00041300' : 'Task is ready to run at its next scheduled time.',
+  '0x00041301' : 'The task is currently running.',
+  '0x00041302' : 'The task has been disabled.',
+  '0x00041303' : 'The task has not yet run.',
+  '0x00041304' : 'There are no more runs scheduled for this task.',
+  '0x00041305' : 'One or more of the properties that are needed to run this task have not been set.',
+  '0x00041306' : 'The last run of the task was terminated by the user.',
+  '0x00041307' : 'Either the task has no triggers or the existing triggers are disabled or not set.',
+  '0x00041308' : 'Event triggers do not have set run times.', 
+  '0x80010002' : 'Call was canceled by the message filter.',
+  '0x80041309' :  """A task's trigger is not found.""",
+  '0x8004130A' : 'One or more of the properties required to run this task have not been set.',
+  '0x8004130B' : 'There is no running instance of the task.',
+  '0x8004130C' : 'The Task Scheduler service is not installed on this computer.',
+  '0x8004130D' : 'The task object could not be opened.',
+  '0x8004130E' : 'The object is either an invalid task object or is not a task object.',
+  '0x8004130F' : 'No account information could be found in the Task Scheduler security database for the task indicated.',
+  '0x80041310' : 'Unable to establish existence of the account specified.',
+  '0x80041311' : 'Corruption was detected in the Task Scheduler security database',
+  '0x80041312' : 'Task Scheduler security services are available only on Windows NT.',
+  '0x80041313' : 'The task object version is either unsupported or invalid.',
+  '0x80041314' : 'The task has been configured with an unsupported combination of account settings and run time options.',
+  '0x80041315' : 'The Task Scheduler Service is not running.',
+  '0x80041316' : 'The task XML contains an unexpected node.',
+  '0x80041317' : 'The task XML contains an element or attribute from an unexpected namespace.',
+  '0x80041318' : 'The task XML contains a value which is incorrectly formatted or out of range.',
+  '0x80041319' : 'The task XML is missing a required element or attribute.',
+  '0x8004131A' : 'The task XML is malformed.',
+  '0x0004131B' : 'The task is registered, but not all specified triggers will start the task.',
+  '0x0004131C' : 'The task is registered, but may fail to start. Batch logon privilege needs to be enabled for the task principal.',
+  '0x8004131D' : 'The task XML contains too many nodes of the same type.',
+  '0x8004131E' : 'The task cannot be started after the trigger end boundary.',
+  '0x8004131F' : 'An instance of this task is already running.',
+  '0x80041320' : 'The task will not run because the user is not logged on.', 
+  '0x80041321' : 'The task image is corrupt or has been tampered with.',
+  '0x80041322' : 'The Task Scheduler service is not available.',
+  '0x80041323' : 'The Task Scheduler service is too busy to handle your request. Please try again later.',
+  '0x80041324' : 'The Task Scheduler service attempted to run the task, but the task did not run due to one of the constraints in the task definition.',
+  '0x00041325' : 'The Task Scheduler service has asked the task to run.',
+  '0x80041326' : 'The task is disabled.',
+  '0x80041327' : 'The task has properties that are not compatible with earlier versions of Windows.',
+  '0x80041328' : 'The task settings do not allow the task to start on demand.',
+  '0xC000013A' : 'The application terminated as a result of a CTRL+C.',
+  '0xC0000142' : 'The application failed to initialize properly.',
+  '0x800710E0' : 'The operator or administrator has refused the request.',
+  '0xE0434352' : '.NET Exception',
 }
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='WMI Remote Ping checker')
+  parser = argparse.ArgumentParser(description='Remote Shell Win Scheduler Task checker')
   parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
   parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
   parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
@@ -175,33 +177,31 @@ Write-Host ($ArrTasks | Select TaskName, TaskFolder, IsEnabled, LastTaskResult, 
 
      if property.attrib["Name"] == "IsEnabled":
        enabled = property.text
+
        if enabled == "False":
          warning_tasks.append("WARNING for task %s: Task is disabled" % (name))
+         break
 
      if property.attrib["Name"] == "LastTaskResult":
        rcode = int(property.text)
-       rcode_hex = hex(rcode & 0xffffffff)
-       
+       rcode_hex = ("0x%08X" % (rcode & 0xffffffff))
+
        try:
-         #transform to hex code with uppercase letter (except the x in 0x0)
-         #hex_code = hex(rcode & 0xffffffff).upper().replace('X', 'x')
-         scheduler_message = error_code.get(rcode & 0xffffffff)
+         scheduler_message = error_code.get(rcode_hex)
        except:
          print("Task %s could no be checked: Return code %s unknown" % (name, rcode_hex))
          code = 3
          sys.exit(3)
 
-       #explanations for the error code can be found here:
-       #https://en.wikipedia.org/wiki/Windows_Task_Scheduler
-       #Apart from the standard errors 1,2 and  10, HEX Codes with preceding 8 or higher (negative integers) can be seen as errors
-       #Codes between 267012 and 267016 indicate a state where the task will not be completed
-       if not scheduler_message:
-         unknown_tasks.append("UNKNOWN for task %s: %s" % (name, rcode_hex))
-       elif rcode in [1,2,10] or rcode < 0 or rcode in [267012, 267013, 267014, 267015, 267016]:
-         failed_tasks.append("CRITICAL for task %s: %s" % (name, scheduler_message))
-       # codes between 267008 and 267011 could also be considered as critical if there is a requirement, that task need to be completed successfully in order to be classified as OK 
-       elif rcode in [0, 267008, 267009, 267010, 267011]:
+       #Explanations for the error code can be found here: https://en.wikipedia.org/wiki/Windows_Task_Scheduler
+       if rcode_hex in ['0x00000000', '0x00041300', '0x00041300', '0x00041300', '0x00041300']:
          tasks.append("OK for task %s: %s" % (name, scheduler_message))
+       
+       elif not scheduler_message:
+         unknown_tasks.append("UNKNOWN for task %s: %s" % (name, rcode_hex))
+
+       else:
+         failed_tasks.append("CRITICAL for task %s: %s" % (name, scheduler_message))
  
   if len(unknown_tasks) > 0:
     code=3
