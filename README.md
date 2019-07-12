@@ -1,7 +1,31 @@
 # Introduction
-Python library for Web-Based Enterprise Management(WBEM).
+Python library for Web-Based Enterprise Management (WBEM). WMI Queries and Remote Shell scripts can be sent securely to windows hosts via encrypted communication. Based on this, nagios plugins can gather arbitrary information about the remote system for monitoring purposes.
 
-# Commands 
+#Testing
+First of all the python path needs to be set
+
+cd pywmi_wbem/src/
+export PYTHONPATH=$(pwd) 
+
+cd ..
+./nagios_checks/check_disk_wbem -H 'host.to.check' -a 'user:pw' --ssl
+
+One can also authenticate via Kerberos. After adding a local user to the Administrator group on the remote host, Kerberos client needs to be set up on the local server. A kerberos ticketcan be created via **kinit domain_user_account**.
+
+Supported checks are:
+
+Disk
+File
+Load
+Memory
+Process
+Remote Ping
+Smart
+Swap
+Windows Task (via Remote Shell)
+Windows Updates (via Remote Shell)
+
+# Icinga config commands 
 
 ```
 object CheckCommand "load-wbem" {
