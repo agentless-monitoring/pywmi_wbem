@@ -33,7 +33,12 @@ if __name__ == '__main__':
     sys.exit(3)
 
   ret_status = 0
-  ping_status = out['StatusCode']
+
+  if len(out) > 0:
+    ping_status = out['StatusCode']
+  else:
+    print("PING UNKNOWN: Cannot retrieve status code")
+    sys.exit(3)
 
   if ping_status == 11001:
     reason = "Buffer Too Small"
