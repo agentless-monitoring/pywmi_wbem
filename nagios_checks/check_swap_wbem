@@ -38,10 +38,16 @@ if __name__ == '__main__':
     print("UNKNOWN: %s: %s" % (type(err).__name__, err))
     sys.exit(3)
 
-  if len(out) == 0:
-     print("UNKNOWN: No output returned!")
-     sys.exit(3)
-     
+  if isinstance(out, dict) and len(out) < 2:
+    print("UNKNOWN: No output returned!")
+    sys.exit(3)
+
+  calculated_out = {}
+  if isinstance(out, list):
+    calculated_out['CurrentUsage'] = sum(el['CurrentUsage'] for el in out)
+    calculated_out['AllocatedBaseSize'] = sum(el['AllocatedBaseSize'] for el in out)
+    out = calculated_out  
+
   swap_usage = int(out['CurrentUsage'])
   swap_max = int(out['AllocatedBaseSize'])
 
