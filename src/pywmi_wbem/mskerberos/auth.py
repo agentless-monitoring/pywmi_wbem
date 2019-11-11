@@ -7,7 +7,7 @@ import re
 import StringIO
 import logging
 
-from mskerberos_crypt import MSKerberosCrypt, GSSError
+from mskerberos_crypt import MSKerberosCrypt
 
  
 class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
@@ -18,11 +18,7 @@ class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
   def _establish_kerberos(self, url, stream=False, timeout=None, verify=True, cert=None, proxies=None):
     parsed = urlparse(url)
     crypt=None
-    try:
-      crypt=MSKerberosCrypt(parsed.hostname)
-    except GSSError:
-      #try fallback SPN
-      crypt=MSKerberosCrypt(parsed.hostname, "HTTP")
+    crypt=MSKerberosCrypt(parsed.hostname)
     headers={}
     headers['Authorization'] = ("Kerberos "+crypt.get_token())
     headers["Content-Type"] = "application/soap+xml;charset=UTF-8"
@@ -149,12 +145,7 @@ class HTTPMSKerberosAuth(requests.auth.AuthBase):
       extract_cookies_to_jar(prep._cookies, r.request, r.raw)
       prep.prepare_cookies(prep._cookies)
 
-      crypt=None
-      try:
-        crypt=MSKerberosCrypt(parsed.hostname)
-      except GSSError:
-        #try fallback SPN
-        crypt=MSKerberosCrypt(parsed.hostname, "HTTP")
+      crypt=MSKerberosCrypt(parsed.hostname)
 
       headers={}
       headers['Authorization'] = ("Kerberos "+crypt.get_token())

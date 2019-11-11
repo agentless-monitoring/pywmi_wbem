@@ -17,6 +17,7 @@ setup(
   install_requires=[
     'requests',
     'argparse',
+    'gssapi',
     'pytz'
   ],
 
