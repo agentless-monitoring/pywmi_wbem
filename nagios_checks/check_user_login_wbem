@@ -1,0 +1,50 @@
+#!/usr/bin/python2
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+from lxml import objectify
+from lxml.etree import XMLSyntaxError
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='WMI Remote Ping checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)  
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+  parser.add_argument('-u', '--user', help="User which needs to be logged in", type=str, required=True)
+
+  args = parser.parse_args()
+
+  user = args.user
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password, timeout=300)
+
+  update_script = """Get-WMIObject Win32_Process -filter 'name="explorer.exe"' | ForEach-Object { $owner = $_.GetOwner(); $owner.User } | Get-Unique"""
+
+  out = ""
+  
+  try:
+    out=wsman.run_powershell_script(script = update_script)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+ err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s" % (type(err).__name__))
+    sys.exit(3)  
+ 
+
+  stdout = out.get("stdout", '')
+  stderr = out.get("stderr", '')
+
+  if not stdout or not user in stdout.split():  
+    print("CRITICAL - %s not logged in" % user) 
+    sys.exit(2)    
+  else:
+    print("OK -  %s logged in" % user)
+    sys.exit(0)
+ 
