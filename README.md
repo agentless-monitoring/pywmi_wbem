@@ -1,32 +1,54 @@
 # Introduction
-Python library for Web-Based Enterprise Management (WBEM). WMI Queries and Remote Shell scripts can be sent securely to windows hosts via encrypted communication. Based on this, nagios plugins can gather arbitrary information about the remote system for monitoring purposes.
+Python library for Web-Based Enterprise Management (WBEM). WMI Queries and Remote Shell scripts can be sent securely to windows hosts via encrypted communication. Based on this, nagios plugins can gather arbitrary information about the remote system for monitoring purposes without having to contact an agent.
 
 # Testing
-First of all the python path needs to be set
+On your Windows host:  
 
-cd pywmi_wbem/src/
-export PYTHONPATH=$(pwd) 
+Add a user to your hosts Admistrator Group
 
-cd ..
-./nagios_checks/check_disk_wbem -H 'host.to.check' -a 'user:pw' --ssl
+
+On the icinga server:  
+
+Set the python path:    
+
+```sh
+cd pywmi_wbem/src/ && export PYTHONPATH=$(pwd)
+```
+
+Try to run a check againt your windows host:  
+
+```sh
+
+../nagios_checks/check_disk_wbem -H 'host_fqdn' -a 'user:pw' --ssl
+```
 
 # Kerberos Authentication
-One can also authenticate via Kerberos. After adding a local user to the Administrator group on the remote host, Kerberos client needs to be set up on the local server. A kerberos ticketcan be created via **kinit domain_user_account**.
+One can also authenticate via Kerberos:  
+After adding a domain_user to the Administrator Group on the remote host, Kerberos client needs to be set up on the icinga server (for rhel systems: https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/7/html/system-level_authentication_guide/configuring_a_kerberos_5_client).  
+Then a kerberos ticket can be created via **kinit domain_user_account**. 
+Now you can try to run the check without basic auth.  
 
+# Troubleshooting
+
+Execute this in the Powershell ISE to test WMI Queries without the WBEM Wrapper provided from this library:
+```
+$Credential = Get-Credential domain\account -Message "Admin account"
+$remote = "fqdn"
+Get-WSManInstance -Enumerate wmicimv2/* -Filter "SELECT * FROM Win32_PageFileUsage" -computername $remote -Credential $Credential
+```
 
 # Available checks
-Supported checks are:
-
-Disk
-File
-Load
-Memory
-Process
-Remote Ping
-Smart
-Swap
-Windows Task (via Remote Shell)
-Windows Updates (via Remote Shell)
+Disk\
+File\
+Load\
+Memory\
+Process\
+Remote Ping\
+Smart\
+Swap\
+Windows Task (via Remote Shell)\
+Windows Updates (via Remote Shell)\
+Logged in user (via Remote Shell)
 
 # Icinga config commands 
 
@@ -238,4 +260,26 @@ object CheckCommand "file-wmi" {
 
   vars.wmi_host = "$address$"
 }
+
+object CheckCommand "user-wbem" {
+  import "plugin-check-command"
+
+  command = [ PluginDir + "/check_user_login_wbem" ]
+                                                                                                                                                                                                                                          arguments = {
+    "-H" = "$wmi_host$"
+    "-S" = {
+      set_if = "$wmi_ssl$"
+    }
+    "-a" = {
+      value = "$wmi_auth_pair$"
+      description = "Username:password on sites with basic authentication"
+    }
+    "-u" = "$win_user$"
+  }
+
+  timeout = 120
+
+  vars.wmi_host = "$address$"
+}
+
 ```

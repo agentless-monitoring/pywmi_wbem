@@ -8,6 +8,8 @@ import StringIO
 import logging
 from mskerberos_crypt import MSKerberosCrypt
 from gssapi.raw.misc import GSSError
+from mskerberos_crypt import MSKerberosCrypt
+
  
 class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
 
