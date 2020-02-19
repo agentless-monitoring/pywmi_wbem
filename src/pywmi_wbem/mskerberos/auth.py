@@ -6,19 +6,22 @@ from requests import Session
 import re
 import StringIO
 import logging
-
 from mskerberos_crypt import MSKerberosCrypt
-
+from gssapi.raw.misc import GSSError
  
 class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
 
   krb_dict={}
- 
 
   def _establish_kerberos(self, url, stream=False, timeout=None, verify=True, cert=None, proxies=None):
     parsed = urlparse(url)
     crypt=None
-    crypt=MSKerberosCrypt(parsed.hostname)
+  
+    try:
+      crypt=MSKerberosCrypt(parsed.hostname)
+    except GSSError:
+      crypt=MSKerberosCrypt(parsed.hostname, service="HTTP")
+   
     headers={}
     headers['Authorization'] = ("Kerberos "+crypt.get_token())
     headers["Content-Type"] = "application/soap+xml;charset=UTF-8"
@@ -145,7 +148,11 @@ class HTTPMSKerberosAuth(requests.auth.AuthBase):
       extract_cookies_to_jar(prep._cookies, r.request, r.raw)
       prep.prepare_cookies(prep._cookies)
 
-      crypt=MSKerberosCrypt(parsed.hostname)
+      crypt=None
+      try:
+        crypt=MSKerberosCrypt(parsed.hostname)
+      except GSSError:
+        crypt=MSKerberosCrypt(parsed.hostname, service="HTTP")
 
       headers={}
       headers['Authorization'] = ("Kerberos "+crypt.get_token())
@@ -180,11 +187,7 @@ class HTTPMSKerberosAuth(requests.auth.AuthBase):
 
     return r
 
-  
-
   def __call__(self, r):
     r.register_hook('response', self.handle_401)
 
     return r
-
-
