@@ -18,7 +18,7 @@ class CompareMode(Enum):
 
 def check_positive(value):
   ivalue = int(value)
-  if ivalue <= 0:
+  if ivalue < 0:
     raise argparse.ArgumentTypeError("count %s is not a positive number" % value)
   return ivalue
 
