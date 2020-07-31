@@ -114,8 +114,7 @@ if __name__ == '__main__':
       ret_status = not_running_status
       output = output + not_running_string + " - Too many processes running | number_processes=%d;;;0;\n" % (count_matching)
     elif count_matching == 0:
-      ret_status = not_running_status
-      output = output + not_running_string + " - No process running | number_processes=%d;;;0;\n" % (count_matching)
+      output = output + "No process running | number_processes=%d;;;0;\n" % (count_matching)
     else:
       output = output + handle_ok(matching, out) 
   #Equal mode
