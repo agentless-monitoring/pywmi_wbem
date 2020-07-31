@@ -1,0 +1,63 @@
+#!/usr/bin/python2
+import math
+import sys
+import argparse
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+from lxml import objectify
+from lxml.etree import XMLSyntaxError
+import json 
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='WMI Remote Ping checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)  
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+
+  args = parser.parse_args()
+
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password, timeout=300)
+
+  update_script = """Get-NetAdapterStatistics | ConvertTo-Json"""
+  out = ""
+  
+  try:
+    out=wsman.run_powershell_script(script = update_script)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+ err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s" % (type(err).__name__))
+    sys.exit(3)  
+ 
+
+  stdout = out.get("stdout", '')
+  stderr = out.get("stderr", '')
+
+  adapter_info = json.loads(stdout)
+  perfdata = ""
+  outputs = []
+
+  if not isinstance(adapter_info,list):
+    adapter_info = [adapter_info]
+
+  for adapter in adapter_info:
+    ifDesc = adapter["ifDesc"]
+    ifAlias = adapter["ifAlias"]
+    sent_bytes = float(adapter["ReceivedBytes"])
+    received_bytes = float(adapter["ReceivedBytes"])
+
+    perfdata = perfdata + "%s_sent_bytes=%sB;;;0; %s_received_bytes=%sB;;;0;" % (ifAlias, sent_bytes, ifAlias, received_bytes)
+    output = "%s (%s) sent %s GB and received %s GB" % (ifAlias, ifDesc, sent_bytes/1000000000, received_bytes/1000000000)
+    outputs.append(output)
+
+  print("OK - Adapter Statistic since last boot | %s" % perfdata)
+  for output in outputs:
+    print(output) 
+
+  sys.exit(0)
