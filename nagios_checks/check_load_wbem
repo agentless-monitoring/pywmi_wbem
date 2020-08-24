@@ -44,7 +44,11 @@ if __name__ == '__main__':
   warn_load = args.warning
   crit_load = args.critical
 
-  if load >= crit_load:
+  #If critical load is set to 0, then the check will always go to OK
+  if crit_load  == 0:
+    status = "LOAD OK"
+    ret_status = 0
+  elif load >= crit_load:
     status = "LOAD CRITICAL"
     ret_status = 2
   elif load >= warn_load:
@@ -56,7 +60,7 @@ if __name__ == '__main__':
 
   print("%s - %i%% | load=%s%%;%s;%s;0;100" % (status, load, load, warn_load, crit_load))
 
-  if ret_status != 0:
+  if load >= warn_load:
     try:
       out=wsman.search_wql(query_per_process)
     except WSManFault as err:
