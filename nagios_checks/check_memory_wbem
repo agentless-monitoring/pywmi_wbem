@@ -58,6 +58,10 @@ if __name__ == '__main__':
     print("UNKNOWN: %s: %s" % (type(err).__name__, err))
     sys.exit(3)
 
+  if not out:
+    print("UNKNOWN: No data can be retrieved")
+    sys.exit(3)
+
   total_memory = int(out['TotalVisibleMemorySize'])
   free_memory = int(out['FreePhysicalMemory'])
   used_memory = total_memory-free_memory
