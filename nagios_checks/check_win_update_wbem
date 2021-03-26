@@ -11,6 +11,7 @@ if __name__ == '__main__':
   parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)  
   parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
   parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+  parser.add_argument('-c', '--update_count', help="Threshold for update  count", type=int, default=0)
 
   args = parser.parse_args()
 
@@ -19,6 +20,7 @@ if __name__ == '__main__':
   else:
     username, password = (None, None)
 
+  update_count  = args.update_count
   wsman = WSMan(args.host, tls=args.ssl, username=username, password=password, timeout=300)
 
   update_script = """Try {
@@ -35,6 +37,10 @@ $toXml = [System.Collections.ArrayList]@()
 if ($results.Updates -ne $null) {
   foreach ($i in 0..($results.Updates.Count-1)) {
     $item = $results.Updates.Item($i)
+    #Ignore Virus definition updates
+    if ($item.Title.Contains("KB2267602 ") -or $item.Title.Contains("KB2461484 ")) {
+      continue
+    }
     $toXml.Add(($item | Select-Object Title, Description, IsPresent, MsrcSeverity, RebootRequired)) | out-null
   }
 }
@@ -104,32 +110,23 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
 
   total_count = critical_count + warning_count + low_count + unspecified_count
 
-  status = None
-  code = 3
+  status = "OK"
+  code = 0
 
-  if critical_count > 0 or warning_count > 0:
-    if not status:
-      status = "WARNING"
-      code = 1
-  if (low_count + unspecified_count) > 0:
-    if not status:
-      status = "WARNING"
-      code = 1
-  if total_count == 0:
-    if not status:
-      status = "OK"
-      print("UPDATE OK - No updates need to be installed")
-      code = 0
+  if (total_count) >= update_count:
+    status = "WARNING"
+    code = 1    
 
-  if status is not "OK":
-    if(total_count > 1):
-      print("UPDATE %s - There are in total %s Updates waiting to be installed:" % (status, total_count))
-    else:
-      print("UPDATE %s - There is %s Update waiting to be installed:" % (status, total_count))
+  if(total_count == 0):
+    print("UPDATE OK - No updates need to be installed")
+  elif(total_count > 1):
+    print("UPDATE %s - There are in total %s Updates waiting to be installed:" % (status, total_count))
+  else:
+    print("UPDATE %s - There is %s Update waiting to be installed:" % (status, total_count))
 
-    print("%sx Update(s) which are tagged as Critical" % (critical_count))
-    print("%sx Update(s) which are tagged as Warning" % (warning_count))
-    print("%sx Update(s) which have a low or unspecified severity" % (low_count + unspecified_count))
-    print("%sx are not present and waiting to be downloaded" % (not_present_count))
+  print("%sx Update(s) which are tagged as Critical" % (critical_count))
+  print("%sx Update(s) which are tagged as Warning" % (warning_count))
+  print("%sx Update(s) which have a low or unspecified severity" % (low_count + unspecified_count))
+  print("%sx are not present and waiting to be downloaded" % (not_present_count))
 
   sys.exit(code)
