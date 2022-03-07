@@ -4,7 +4,13 @@ Python library for Web-Based Enterprise Management (WBEM). WMI Queries and Remot
 # Testing
 On your Windows host:  
 
-Add a user to your hosts Admistrator Group
+Add a user to your hosts Administrator Group
+
+Basic Auth will not work without some additional settings before.
+
+https://github.com/diyan/pywinrm#enabling-winrm-on-remote-host
+
+But be careful, this is quite insecure for http only
 
 
 On the icinga server:  
