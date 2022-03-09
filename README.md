@@ -1,6 +1,9 @@
 # Introduction
 Python library for Web-Based Enterprise Management (WBEM). WMI Queries and Remote Shell scripts can be sent securely to windows hosts via encrypted communication. Based on this, nagios plugins can gather arbitrary information about the remote system for monitoring purposes without having to contact an agent.
 
+# Prerequisites
+If you want to use Kerberos, be aware only MIT Kerberos is supported
+
 # Testing
 On your Windows host:  
 
@@ -271,7 +274,7 @@ object CheckCommand "user-wbem" {
   import "plugin-check-command"
 
   command = [ PluginDir + "/check_user_login_wbem" ]
-                                                                                                                                                                                                                                          arguments = {
+                                                                                                                                                                                     arguments = {
     "-H" = "$wmi_host$"
     "-S" = {
       set_if = "$wmi_ssl$"
