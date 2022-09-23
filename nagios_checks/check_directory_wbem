@@ -1,0 +1,114 @@
+#!/usr/bin/python2
+import sys
+import argparse
+from datetime import datetime
+import pytz
+
+from pywmi_wbem.wsman.query import WSMan, WSManFault
+from lxml import objectify
+from lxml.etree import XMLSyntaxError
+
+def create_output(state, message, count_matching, subject='Directory'):
+      return "%s for %s - %s (Filecount %s) | number_files=%d;;;0;\n" % (state, subject,  message, count_matching, count_matching)
+
+if __name__ == '__main__':
+  parser = argparse.ArgumentParser(description='WMI Remote Ping checker')
+  parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)  
+  parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
+  parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
+  parser.add_argument('-c', '--count', help="Count", type=int, required=True)
+  parser.add_argument('-p', '--path', help="Directory path", type=str, required=True)
+  args = parser.parse_args()
+
+  if args.authorization != None:
+    username, password = args.authorization.split(":")
+  else:
+    username, password = (None, None)
+
+  wsman = WSMan(args.host, tls=args.ssl, username=username, password=password, timeout=300)
+
+  files_in_dir_ps = """
+try {
+  Get-ChildItem -Path "PATH_HERE" -erroraction stop | where { ! $_.PSIsContainer } | Select-Object Name, @{name='LastWriteTime';expression= {$_.LastWriteTime.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ss.fffK")}}, Length | ConvertTo-Xml -NoTypeInformation -As String
+} catch [System.Exception] {
+  $ex=$_.Exception
+  $ex.Message
+  exit
+}""".replace("PATH_HERE", args.path)
+
+  out = ""
+  try:
+    out=wsman.run_powershell_script(script = files_in_dir_ps)
+  except WSManFault as err:
+    print("UNKNOWN: WSManFault: "+ err.message)
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s %s" % (type(err).__name__, err))
+    sys.exit(3) 
+ 
+  stdout = out.get("stdout", '')
+  stderr = out.get("stderr", '')
+
+  if not stdout: 
+    print("UNKNOWN: No data available")
+    sys.exit(3)
+
+  try:
+    stdout_xml = objectify.fromstring(stdout.encode('utf-8'))
+    object_path = objectify.ObjectPath("Objects")
+    object_el = object_path.find(stdout_xml)
+  except XMLSyntaxError as err:
+    message = ''
+    if stdout:
+      stdout = stdout.decode('utf-8-sig')
+      stdout = stdout.encode('utf-8')
+      stdout = stdout.replace('\n', '')
+      stdout = stdout.replace('\r', '')
+    if stderr:
+      stderr = stderr.decode('utf-8-sig')
+      stderr = stderr.encode('utf-8')
+      stderr = stderr.replace('\n', '')
+      stderr = stderr.replace('\r', '')
+
+    print("UNKNOWN: %s %s" % (stdout, stderr))
+    sys.exit(3)
+  except Exception as err:
+    print("UNKNOWN: %s" % (type(err).__name__))
+    sys.exit(3)
+
+  files = []
+
+  for object in object_el.iterchildren():
+    current_file={}
+    files.append(current_file)
+    prop_path = objectify.ObjectPath("Object.Property")
+    prop_el = prop_path.find(object)
+    for property in prop_el:
+      if property.attrib["Name"] == "Name":
+        current_file["name"]=property.text
+      if property.attrib["Name"] == "LastWriteTime":
+        current_file["last_write"] = datetime.strptime(property.text, "%Y-%m-%dT%H:%M:%S.%fZ")
+      if property.attrib["Name"] == "Length":
+        current_file["size"] = int(property.text)
+
+  status = "OK"
+  code = 0
+  output = ""
+
+  if len(files) > args.count:
+    output = create_output("CRITCIAL", "Too many files found", len(files))
+    newest_files=sorted(files, key=lambda x: x.get("last_write"), reverse=True)[0:10]
+    for file in newest_files:
+      utc=pytz.UTC
+      last_modified = file["last_write"].replace(tzinfo=pytz.UTC)
+      now_utc=utc.localize(datetime.utcnow())
+      time_diff=now_utc - last_modified
+
+      output = output + "Filename: %s Last write: %s (%s ago) Size: %d\n" % (file["name"], last_modified.isoformat(), time_diff, file["size"])
+    code = 2
+  else:
+    output = create_output("OK", "", len(files))
+    code = 0
+
+  print(output)
+  sys.exit(code)
