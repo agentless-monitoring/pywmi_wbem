@@ -1,5 +1,5 @@
 from lxml import etree as ET
-from lxml import objectify  
+from lxml import objectify
 import uuid
 import requests
 from pywmi_wbem.mskerberos.auth import HTTPMSKerberosAuth, HTTPMSKerberosAdapter
@@ -33,28 +33,28 @@ class States():
   ENUMERATE_RESPONSE = {"name" : "EnumareResponse", "action": "http://schemas.xmlsoap.org/ws/2004/09/enumeration/EnumerateResponse"}
   PULL = {"name" : "Pull", "action": "http://schemas.xmlsoap.org/ws/2004/09/enumeration/Pull"}
   PULL_RESPONSE = {"name" : "PullResponse", "action": "http://schemas.xmlsoap.org/ws/2004/09/enumeration/PullResponse"}
-  
+
 class WSManFault(Exception):
   pass
-  
+
 class WSManFault_NoShellOutput(Exception):
   pass
 
 class WSMAN_Constants:
-  CONTENT_TYPE = "application/soap+xml"
+  CONTENT_TYPE = b"application/soap+xml"
   SOAP_ENVELOPE = "http://www.w3.org/2003/05/soap-envelope"
   WSA = "http://schemas.xmlsoap.org/ws/2004/08/addressing"
   TRANSFER = "http://schemas.xmlsoap.org/ws/2004/09/transfer"
-  WSMAN_1 = "http://schemas.microsoft.com/wbem/wsman/1"  
+  WSMAN_1 = "http://schemas.microsoft.com/wbem/wsman/1"
   WSMAN = "http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd"
   LANG = "{http://www.w3.org/XML/1998/namespace}lang"
-  WSEN = "http://schemas.xmlsoap.org/ws/2004/09/enumeration"   
+  WSEN = "http://schemas.xmlsoap.org/ws/2004/09/enumeration"
   ANONYMOUS = "http://schemas.xmlsoap.org/ws/2004/08/addressing/role/anonymous"
   XSI = "http://www.w3.org/2001/XMLSchema-instance"
   WMI = "%s/wmi" % (WSMAN_1)
   WSMAN_FAULT = "%s/wsmanfault"  % (WSMAN_1)
   SHELL = "%s/windows/shell" % (WSMAN_1)
-  SIGNAL = "%s/signal/terminate" % (SHELL) 
+  SIGNAL = "%s/signal/terminate" % (SHELL)
   WQL = "%s/WQL"  % (WSMAN_1)
   ACTION_TAG = "{%s}Action" % (WSA)
   TO_TAG = "{%s}To" % (WSA)
@@ -68,8 +68,8 @@ class WSMAN_Constants:
   BODY_TAG = "{%s}Body" % (SOAP_ENVELOPE)
   CREATE_ACTION = "%s/Create" % (TRANSFER)
   DELETE_ACTION = "%s/Delete" % (TRANSFER)
-  RESOURCE_URI_TAG = "{%s}ResourceURI" % (WSMAN) 
-  LOCALE_TAG = "{%s}Locale" % (WSMAN)     
+  RESOURCE_URI_TAG = "{%s}ResourceURI" % (WSMAN)
+  LOCALE_TAG = "{%s}Locale" % (WSMAN)
   OPERATION_TIMEOUT_TAG = "{%s}OperationTimeout" % (WSMAN)
   MAX_ENVELOPE_SIZE_TAG = "{%s}MaxEnvelopeSize"  % (WSMAN)
   OPTION_SET_TAG = "{%s}OptionSet"  % (WSMAN)
@@ -78,9 +78,9 @@ class WSMAN_Constants:
   SELECTOR_SET_TAG = "{%s}SelectorSet" % (WSMAN)
   SELECTOR_PATH = "Envelope.Body.{%s}ResourceCreated.{%s}ReferenceParameters.%s.%s" % (TRANSFER, WSA, SELECTOR_SET_TAG, SELECTOR_TAG)
   FILTER_TAG = "{%s}Filter" % (WSMAN)
-  DIALECT_TAG = "{%s}Dialect" % (WSMAN)  
+  DIALECT_TAG = "{%s}Dialect" % (WSMAN)
   CMD = "%s/cmd" % (SHELL)
-  SHELL_TAG = "{%s}Shell" % (SHELL) 
+  SHELL_TAG = "{%s}Shell" % (SHELL)
   COMMAND_ID = "Envelope.Body.{%s}CommandResponse.{%s}CommandId" % (SHELL, SHELL)
   RECEIVE_TAG = "{%s}Receive" % (SHELL)
   SIGNAL_TAG = "{%s}Signal" % (SHELL)
@@ -89,12 +89,12 @@ class WSMAN_Constants:
   RECEIVE_ACTION = "%s/Receive" % (SHELL)
   RECEIVE_RESPONSE = "Envelope.Body.{%s}ReceiveResponse" % (SHELL)
   STREAM = "%s.{%s}Stream" % (RECEIVE_RESPONSE, SHELL)
-  COMMAND_STATE = "%s.{%s}CommandState" % (RECEIVE_RESPONSE, SHELL)  
+  COMMAND_STATE = "%s.{%s}CommandState" % (RECEIVE_RESPONSE, SHELL)
   COMMAND_ACTION = "%s/Command" % (SHELL)
   SIGNAL_ACTION = "%s/Signal" % (SHELL)
   COMMAND_TAG = "{%s}Command" % (SHELL)
   ARGUMENTS_TAG = "{%s}Arguments" % (SHELL)
-  COMMANDLINE_TAG = "{%s}CommandLine" % (SHELL) 
+  COMMANDLINE_TAG = "{%s}CommandLine" % (SHELL)
   PULL_RESPONSE_TAG = "{%s}PullResponse" % (WSEN)
   PULL_TAG = "{%s}Pull" % (WSEN)
   ENUMERATION_CONTEXT_TAG = "{%s}EnumerationContext" % (WSEN)
@@ -104,23 +104,23 @@ class WSMAN_Constants:
   ENUMERATE_TAG = "{%s}Enumerate" % (WSEN)
   ENUMERATE = "%s/Enumerate" % (WSEN)
 
-class WSMan():  
-  
+class WSMan():
+
   def __init__(self, server, port = None, tls=False, username=None, password=None, timeout=60):
     self.adapter = None
     self.tls=tls
     self.username=username
-    self.server = server	
-	
+    self.server = server
+
     if self.tls is True:
       if port is None:
-	      port = 5986
+              port = 5986
       protocol = "https"
     else:
       if port is None:
-	      port = 5985
+              port = 5985
       protocol = "http"
-     
+
     self.session = requests.Session()
 
     if self.username != None and password != None:
@@ -128,18 +128,18 @@ class WSMan():
     else:
       self.auth=HTTPMSKerberosAuth()
       if self.adapter is None:
-	      self.adapter = HTTPMSKerberosAdapter()
+              self.adapter = HTTPMSKerberosAdapter()
       self.session.mount('%s://' % (protocol), self.adapter)
 
-    self.host = "%s://%s:%i/wsman" % (protocol, self.server, port)	   
+    self.host = "%s://%s:%i/wsman" % (protocol, self.server, port)
     self.headers = {"Content-Type" : "%s; charset=UTF-8" % (WSMAN_Constants.CONTENT_TYPE)}
     self.timeout = timeout
     self.resource_uri = ""
-	
+
     #state specific
     self.current_state = States.INITIAL
-    self.current_action = ""	
-    
+    self.current_action = ""
+
     #remote shell
     self.script = ""
     self.sub_header = []
@@ -149,16 +149,16 @@ class WSMan():
     self.maxenvelope = "512000"
     #only for powershell
     self.operationtimeout = "PT%s.000S" % (timeout)
-    
-        
+
+
   def generate_message(self, action, to, resource_uri, uuid, sub_body=None, sub_header=None, nsmap=None):
     if nsmap == None:
       nsmap={"soap-envelope": WSMAN_Constants.SOAP_ENVELOPE,
-	     "wsa": WSMAN_Constants.WSA,
-	     "wsman": WSMAN_Constants.WSMAN,
-	     "wsen": WSMAN_Constants.WSEN        
+             "wsa": WSMAN_Constants.WSA,
+             "wsman": WSMAN_Constants.WSMAN,
+             "wsen": WSMAN_Constants.WSEN
       }
-	  
+
     root = ET.Element(WSMAN_Constants.ENVELOPE_TAG, nsmap=nsmap)
     header = ET.SubElement(root, WSMAN_Constants.HEADER_TAG)
 
@@ -188,10 +188,10 @@ class WSMan():
     reply_to=ET.SubElement(header, WSMAN_Constants.REPLY_TO_TAG)
     address=ET.SubElement(reply_to, WSMAN_Constants.ADRESS_TAG)
     address.text= WSMAN_Constants.ANONYMOUS
- 
+
     if sub_body != None:
-      body.append(sub_body)  
-   
+      body.append(sub_body)
+
     return root
 
   #not fully implemented
@@ -201,10 +201,10 @@ class WSMan():
 
     if params != None:
       for i in params:
-	key=i
-	value=params[key]
-	param_element=ET.SubElement(input_element, "{%s}%s" % (resource_uri, key))
-	param_element.text=str(value)
+        key=i
+        value=params[key]
+        param_element=ET.SubElement(input_element, "{%s}%s" % (resource_uri, key))
+        param_element.text=str(value)
 
     selectorset_element=ET.Element("{http://schemas.dmtf.org/wbem/wsman/1/wsman.xsd}SelectorSet")
     for i in selectorset:
@@ -235,38 +235,38 @@ class WSMan():
     msg=ET.tostring(root)
     r=self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=self.timeout)
     self.check_response(r)
-	
+
   #called directly by wql nagios checks (load,memory,disc)
-  def wql_group_result(self, output, group_key):  
+  def wql_group_result(self, output, group_key):
     ret={}
     if isinstance(output, dict):
-      if output.get(group_key):  
-	ret[output[group_key]]=output  
-	del output[group_key]  
-	return ret
+      if output.get(group_key):
+        ret[output[group_key]]=output
+        del output[group_key]
+        return ret
     else:
-      for i in output:  
-	ret[i[group_key]]=i  
-	del ret[i[group_key]][group_key]  
-    
+      for i in output:
+        ret[i[group_key]]=i
+        del ret[i[group_key]][group_key]
+
     return ret
-   
+
   def search_wql(self, wql, namespace="root/cimv2"):
     self.values = []
     self.namespace = namespace
     self.wql = wql
-    self.enum_context = None	
+    self.enum_context = None
     self.wql_send_enumerate()
-    
+
     if len(self.values) == 1:
        return self.values[0]
-    else: 
+    else:
       return self.values
 
-  def check_response(self, r):	
+  def check_response(self, r):
     if 'Content-Type' not in r.headers:
       r.raise_for_status()
-    if r.headers['Content-Type'].startswith(WSMAN_Constants.CONTENT_TYPE) is False:
+    if r.headers[b'Content-Type'].startswith(WSMAN_Constants.CONTENT_TYPE) is False:
       raise TypeError(r.content)
     answer=objectify.fromstring(r.content)
     action_path=objectify.ObjectPath(WSMAN_Constants.ACTION_PATH)
@@ -274,7 +274,7 @@ class WSMan():
     self.current_action = action_el.text
     self.response = r
     self.next_state()
-  
+
   def next_state(self):
     # Only look for faults if we already sent something, the initial state has no response
     if hasattr(self, "response"):
@@ -284,11 +284,11 @@ class WSMan():
       if is_fault.hasattr(xml):
         self.current_state = States.FAULT
         self.handle_fault()
-  
+
     #remote shell states
     if self.current_action == States.CREATE_SHELL['action']:
       self.current_state = States.CREATE_SHELL
-      self.create_shell()	
+      self.create_shell()
     elif self.current_action == States.CREATE_RESPONSE['action']:
       self.current_state = States.CREATE_RESPONSE
       self.shell_execute_command()
@@ -301,14 +301,14 @@ class WSMan():
     elif self.current_action == States.RECEIVE_DONE['action']:
       self.current_state = States.RECEIVE_DONE
       self.shell_terminate_signal()
-    elif self.current_action == States.SIGNAL_RESPONSE['action']:  
+    elif self.current_action == States.SIGNAL_RESPONSE['action']:
       self.current_state = States.SIGNAL_RESPONSE
       self.delete_shell()
     elif self.current_action == States.FETCH_OUTPUT['action']:
       self.current_state = States.FETCH_OUTPUT
       self.shell_fetch_output(0)
-	  
-    #wql states	  
+
+    #wql states
     elif self.current_action == States.ENUMERATE_RESPONSE['action']:
       self.current_state = States.ENUMERATE_RESPONSE
       self.wql_check_enum_context()
@@ -318,7 +318,7 @@ class WSMan():
     elif self.current_action == States.PULL_RESPONSE['action']:
       self.current_state = States.PULL_RESPONSE
       self.wql_parse_pull_response()
-	  
+
   def wql_send_enumerate(self):
     #the message body type indicates in which kind of message the enum_context can be found. see wql_check_enum_context
     self.message_body_type = WSMAN_Constants.ENUMERATE_RESPONSE_TAG
@@ -331,23 +331,23 @@ class WSMan():
     root=self.generate_message(enumerate, self.host, resource_uri, uuid.uuid4(), enumerate_element)
     msg=ET.tostring(root)
     r=self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=self.timeout)
-    self.check_response(r)  
-	  
-  def wql_parse_pull_response(self):   
-    
+    self.check_response(r)
+
+  def wql_parse_pull_response(self):
+
     item_fragment_path=objectify.ObjectPath("Envelope.Body.{%s}PullResponse.Items.{%s}XmlFragment" % (WSMAN_Constants.WSEN, WSMAN_Constants.WSMAN ))
     item_full_path=objectify.ObjectPath("Envelope.Body.{%s}PullResponse.Items" % (WSMAN_Constants.WSEN))
     xml = objectify.fromstring(self.response.content)
-    
-    items = None	
+
+    items = None
     try:
-	  items=item_fragment_path.find(xml)
+          items=item_fragment_path.find(xml)
     except AttributeError:
-	  try:
-	    items=item_full_path.find(xml)
-	  except AttributeError:
-	    pass
-        
+          try:
+            items=item_full_path.find(xml)
+          except AttributeError:
+            pass
+
     for item in items:
       entry={}
       for i in item.iterchildren():
@@ -355,17 +355,17 @@ class WSMan():
           for subchild in i.iterchildren():
             if subchild.tag == "Datetime":
               entry[i.tag]=date_parse(str(subchild))
-        else:              
+        else:
           entry[i.tag]=i
-      
+
       if entry:
-        self.values.append(entry)           
-	
-    self.wql_check_enum_context()    
-	  	
+        self.values.append(entry)
+
+    self.wql_check_enum_context()
+
   def wql_check_enum_context(self):
     xml = objectify.fromstring(self.response.content)
-	
+
     try:
       enum_context = xml.Body[self.message_body_type].EnumerationContext.text
       if self.enum_context != enum_context:
@@ -373,34 +373,34 @@ class WSMan():
         self.current_action = States.PULL["action"]
         self.next_state()
     except AttributeError:
-      pass	 	
-	
-  def handle_fault(self):    
-    xml=objectify.fromstring(self.response.content)    	
+      pass
+
+  def handle_fault(self):
+    xml=objectify.fromstring(self.response.content)
     is_fault = objectify.ObjectPath("Envelope.Body.Fault")
-    if is_fault.hasattr(xml):		  
-      fault=is_fault.find(xml)      
+    if is_fault.hasattr(xml):
+      fault=is_fault.find(xml)
       fault_text=fault.Reason.Text.text
       has_wsman_details = objectify.ObjectPath(".Detail.{%s}WSManFault" % (WSMAN_Constants.WSMAN_FAULT))
       if has_wsman_details.hasattr(fault):
         details=has_wsman_details.find(fault)
         if details.attrib.__contains__("Code") and details.attrib["Code"] == "2150858793":
-          #retry  
-          self.shell_fetch_output(0)      
+          #retry
+          self.shell_fetch_output(0)
         else:
           detail_text=details.Message.text
           if detail_text != None:
             raise WSManFault(detail_text.encode('utf-8'))
-	
-  def run_powershell_script(self, script=""):   
-        
+
+  def run_powershell_script(self, script=""):
+
     self.command["text"] = "powershell"
     self.command["arguments"].append("-encodedcommand")
     self.command["arguments"].append(base64.b64encode(script.encode('utf_16_le')).decode('ascii'))
     self.current_action = WSMAN_Constants.CREATE_ACTION
-    self.next_state() 	 
-    return self.output   	
-	
+    self.next_state()
+    return self.output
+
   def get_shell_sub_header(self):
     #sub_header can be set (e.g. shell id is only parsed once and then set in the sub_header)
     if self.sub_header:
@@ -409,18 +409,18 @@ class WSMan():
     locale = ET.Element(WSMAN_Constants.LOCALE_TAG)
     locale.attrib[WSMAN_Constants.MUST_UNDERSTAND]="false"
     locale.attrib[WSMAN_Constants.LANG]="en-US"
-    
+
     operationtimeout = ET.Element(WSMAN_Constants.OPERATION_TIMEOUT_TAG)
     operationtimeout.text = self.operationtimeout
-    
+
     maxenvelope = ET.Element(WSMAN_Constants.MAX_ENVELOPE_SIZE_TAG)
     maxenvelope.attrib[WSMAN_Constants.MUST_UNDERSTAND]="true"
-    maxenvelope.text= self.maxenvelope	
-	
+    maxenvelope.text= self.maxenvelope
+
     option_set=ET.Element(WSMAN_Constants.OPTION_SET_TAG , nsmap={"xsi": WSMAN_Constants.XSI})
     option1 = ET.SubElement(option_set, WSMAN_Constants.OPTION_TAG)
     option1 .attrib["Name"]="WINRS_CONSOLEMODE_STDIN"
-    option1 .text ="TRUE"   
+    option1 .text ="TRUE"
     option2 = ET.SubElement(option_set, WSMAN_Constants.OPTION_TAG)
     option2 .attrib["Name"]="WINRS_SKIP_CMD_SHELL"
     option2 .text ="FALSE"
@@ -429,21 +429,21 @@ class WSMan():
     option3.text = "TRUE"
     option4 = ET.SubElement(option_set, WSMAN_Constants.OPTION_TAG)
     option4. attrib["Name"]="WINRS_CODEPAGE"
-    option4.text = "65001" 
+    option4.text = "65001"
     return [option_set, operationtimeout, locale, maxenvelope]
-  	
+
   def create_shell(self):
     sub_body=ET.Element(WSMAN_Constants.SHELL_TAG, nsmap = {"rsp": WSMAN_Constants.SHELL})
     action = WSMAN_Constants.CREATE_ACTION
     root=self.generate_message(action, self.host, WSMAN_Constants.CMD , uuid.uuid4(), sub_body = sub_body, sub_header = self.get_shell_sub_header())
-    msg=ET.tostring(root)   
+    msg=ET.tostring(root)
     create_shell_response = self.session.post(self.host, auth=self.auth, data=msg, headers=self.headers, timeout=self.timeout)
-    self.check_response(create_shell_response) 
-	
-  def shell_execute_command(self): 
-     
-    sub_header = self.get_shell_sub_header() 
-    # set shell id 
+    self.check_response(create_shell_response)
+
+  def shell_execute_command(self):
+
+    sub_header = self.get_shell_sub_header()
+    # set shell id
     selector_set=ET.Element(WSMAN_Constants.SELECTOR_SET_TAG, nsmap={"wsman": WSMAN_Constants.WSMAN})
     selector_set.attrib["xmlns"]=WSMAN_Constants.WSMAN
     selector = ET.SubElement(selector_set, WSMAN_Constants.SELECTOR_TAG)
@@ -451,7 +451,7 @@ class WSMan():
     selector.text = self.parse_shell_id()
     subheader = sub_header.append(selector_set)
     self.sub_header = sub_header
-       	
+
     #build command
     commandLine=ET.Element(WSMAN_Constants.COMMANDLINE_TAG , nsmap={"rsp": WSMAN_Constants.SHELL})
     command_el = ET.SubElement(commandLine, WSMAN_Constants.COMMAND_TAG)
@@ -460,82 +460,82 @@ class WSMan():
     for argument in self.command["arguments"]:
       arguments = ET.SubElement(commandLine, WSMAN_Constants.ARGUMENTS_TAG)
       arguments.text = argument
-              	
+
     #send command
     root=self.generate_message(WSMAN_Constants.COMMAND_ACTION, self.host, WSMAN_Constants.CMD , uuid.uuid4(), commandLine, sub_header=sub_header)
     command_msg = ET.tostring(root)
     command_response = self.session.post(self.host, auth=self.auth, data=command_msg, headers=self.headers, timeout=self.timeout)
-    self.check_response(command_response)    
+    self.check_response(command_response)
 
   def parse_shell_id(self):
    selectorset_selector_path=objectify.ObjectPath(WSMAN_Constants.SELECTOR_PATH)
    selectorset_selector_el=selectorset_selector_path.find(objectify.fromstring(self.response.content))
-   return selectorset_selector_el.text	
-  
+   return selectorset_selector_el.text
+
   def shell_fetch_output(self, sequence):
     commandId_path= WSMAN_Constants.COMMAND_ID
     if self.commandId != None:
       commandId = self.commandId
     else:
-      commandId = objectify.ObjectPath(commandId_path).find(objectify.fromstring(self.response.content)).text    
+      commandId = objectify.ObjectPath(commandId_path).find(objectify.fromstring(self.response.content)).text
       self.commandId = commandId
-	  
+
     sub_body=ET.Element(WSMAN_Constants.RECEIVE_TAG , nsmap={"rsp": WSMAN_Constants.SHELL})
     sub_body.attrib["SequenceId"]=str(sequence)
     desiredStream = ET.SubElement(sub_body, WSMAN_Constants.DESIRED_STREAM_TAG)
-    desiredStream.attrib["CommandId"]=commandId 
-    desiredStream.text ="stdout stderr"     
-    
+    desiredStream.attrib["CommandId"]=commandId
+    desiredStream.text ="stdout stderr"
+
     root=self.generate_message(WSMAN_Constants.RECEIVE_ACTION, self.host, WSMAN_Constants.CMD , uuid.uuid4(), sub_body, self.get_shell_sub_header())
     receive_msg = ET.tostring(root)
     r = self.session.post(self.host, auth=self.auth, data=receive_msg, headers=self.headers, timeout=self.timeout)
-    
+
     try:
-      self.check_response(r)	
+      self.check_response(r)
     except WSManFault_NoShellOutput:
       self.current_action = States.FETCH_OUTPUT['action']
       self.next_state()
-    
-  def parse_shell_output(self):   
+
+  def parse_shell_output(self):
     stdout = ""
-    stderr = ""  
+    stderr = ""
     state = ""
     sequence = 0
-        
-    while(state != "Done"):  
-      
+
+    while(state != "Done"):
+
       xml=objectify.fromstring(self.response.content)
       stream_path=objectify.ObjectPath(WSMAN_Constants.STREAM)
       stream_el = stream_path.find(xml)
-      
+
       for stream in stream_el:
-        if stream.attrib["Name"] == "stdout":          
-          if stream.text:             	  
-            stdout += base64.b64decode(stream.text)
+        if stream.attrib["Name"] == "stdout":
+          if stream.text:
+            stdout += base64.b64decode(stream.text).decode()
         if stream.attrib["Name"] == "stderr":
           if stream.text:
-            stderr += base64.b64decode(stream.text)	
-      
+            stderr += base64.b64decode(stream.text).decode()
+
       command_state_path=objectify.ObjectPath(WSMAN_Constants.COMMAND_STATE)
       command_state_el=command_state_path.find(xml)
-      state = command_state_el.attrib["State"].split("/")[-1]  
+      state = command_state_el.attrib["State"].split("/")[-1]
       sequence += 1
 
       if state != "Done":
         self.shell_fetch_output(sequence)
-		
-    self.output = {"stdout": stdout, "stderr": stderr}    
+
+    self.output = {"stdout": stdout, "stderr": stderr}
     self.current_action = "ReceiveDone"
     self.next_state()
-	
+
   def delete_shell(self):
     root=self.generate_message(WSMAN_Constants.DELETE_ACTION, self.host, WSMAN_Constants.CMD , uuid.uuid4(), sub_header=self.get_shell_sub_header())
     delete_msg = ET.tostring(root)
     r=self.session.post(self.host, auth=self.auth, data=delete_msg, headers=self.headers, timeout=self.timeout)
-    self.check_response(r)   
+    self.check_response(r)
 
   def shell_terminate_signal(self):
-   
+
     sub_body=ET.Element(WSMAN_Constants.SIGNAL_TAG , nsmap={"rsp": WSMAN_Constants.SHELL})
     sub_body.attrib["CommandId"]=self.commandId
     code = ET.SubElement(sub_body, WSMAN_Constants.CODE_TAG)
@@ -544,5 +544,5 @@ class WSMan():
     signal_msg = ET.tostring(root)
     r=self.session.post(self.host, auth=self.auth, data=signal_msg, headers=self.headers, timeout=self.timeout)
     self.current_action = "SignalResponse"
-    self.check_response(r)  
-  
+    self.check_response(r)
+
