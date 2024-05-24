@@ -13,17 +13,17 @@ class MSKerberosCrypt(object):
 
     self._ctx = gssapi.SecurityContext(name=gss_spn)
 
-    self.token = "".join(base64.encodestring(self._ctx.step()).split("\n"))
+    self.token = b"".join(base64.encodestring(self._ctx.step()).split(b"\n"))
 
   def get_token(self):
     return self.token
 
   def step(self, b64_token):
-    raw_intoken = base64.decodestring(b64_token)
+    raw_intoken = base64.decodestring(b64_token.encode('utf-8'))
     self._ctx.step(raw_intoken)
 
   def encrypt(self, data):
-    # print(data)
+    print(data)
     iov = IOV(IOVBufferType.header, (IOVBufferType.data, data), IOVBufferType.padding, std_layout=False)
     wrap_iov(self._ctx, iov)
     header_len = len(iov[0].value)
@@ -39,14 +39,14 @@ class MSKerberosCrypt(object):
     if pad_len > 0:
       enc_block = enc_block + iov[2].value
 
-    body = ["--Encrypted Boundary",
-            "Content-Type: application/HTTP-Kerberos-session-encrypted",
-            "OriginalContent: type=application/soap+xml;charset=UTF-8;Length=" + str(len(data) + pad_len),
-            "--Encrypted Boundary",
-            "Content-Type: application/octet-stream",
-            "%s--Encrypted Boundary--"
-            "\r\n"]
-    body_txt = '\r\n'.join(body)
+    body = [b"--Encrypted Boundary",
+            b"Content-Type: application/HTTP-Kerberos-session-encrypted",
+            b"OriginalContent: type=application/soap+xml;charset=UTF-8;Length=" + str(len(data) + pad_len).encode('utf-8'),
+            b"--Encrypted Boundary",
+            b"Content-Type: application/octet-stream",
+            b"%s--Encrypted Boundary--"
+            b"\r\n"]
+    body_txt = b'\r\n'.join(body)
 
     return body_txt % (enc_block)
 
@@ -62,5 +62,5 @@ class MSKerberosCrypt(object):
 
     decrypted = iov[1].value
 
-    # print(decrypted)
+    print(decrypted)
     return decrypted
