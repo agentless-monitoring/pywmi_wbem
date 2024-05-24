@@ -23,7 +23,7 @@ class MSKerberosCrypt(object):
     self._ctx.step(raw_intoken)
 
   def encrypt(self, data):
-    print(data)
+    #print(data)
     iov = IOV(IOVBufferType.header, (IOVBufferType.data, data), IOVBufferType.padding, std_layout=False)
     wrap_iov(self._ctx, iov)
     header_len = len(iov[0].value)
@@ -62,5 +62,5 @@ class MSKerberosCrypt(object):
 
     decrypted = iov[1].value
 
-    print(decrypted)
+    #print(decrypted)
     return decrypted

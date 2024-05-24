@@ -7,10 +7,10 @@ import re
 import logging
 from pywmi_wbem.mskerberos.mskerberos_crypt import MSKerberosCrypt
 from gssapi.raw.misc import GSSError
-import http.client
 from io import BytesIO
+#import http.client 
 
-http.client.HTTPConnection.debuglevel = 1
+#http.client.HTTPConnection.debuglevel = 1
 
 class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
   krb_dict = {}
@@ -113,9 +113,7 @@ class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
               encrypted_data = data
 
           con = self.get_connection(req.url, None)
-          print(encrypted_data)
           decrypted = HTTPMSKerberosAdapter.krb_dict[req.url].decrypt(encrypted_data)
-          print(original_values)
           response.headers["Content-Type"] = original_values["type"] + "; charset=" + original_values["charset"]
           response.headers["Content-Length"] = len(decrypted)
           response.encoding = requests.utils.get_encoding_from_headers(response.headers)
