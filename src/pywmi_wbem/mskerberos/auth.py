@@ -4,12 +4,13 @@ from requests.compat import urlparse
 from requests.structures import CaseInsensitiveDict
 from requests import Session
 import re
-import StringIO
 import logging
-from mskerberos_crypt import MSKerberosCrypt
+from pywmi_wbem.mskerberos.mskerberos_crypt import MSKerberosCrypt
 from gssapi.raw.misc import GSSError
-from mskerberos_crypt import MSKerberosCrypt
+import http.client
+from io import BytesIO
 
+http.client.HTTPConnection.debuglevel = 1
 
 class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
   krb_dict = {}
@@ -24,7 +25,7 @@ class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
       crypt = MSKerberosCrypt(parsed.hostname, service="HTTP")
 
     headers = {}
-    headers['Authorization'] = ("Kerberos " + crypt.get_token())
+    headers['Authorization'] = ("Kerberos " + crypt.get_token().decode('utf-8'))
     headers["Content-Type"] = "application/soap+xml;charset=UTF-8"
     headers["Connection"] = 'Keep-Alive'
 
@@ -85,35 +86,40 @@ class HTTPMSKerberosAdapter(requests.adapters.HTTPAdapter):
           key, value = item.split("=")
           if value[0] == '"' and value[-1] == '"':
             value = value[1:-1]
-            value = value.replace(b'\\\\', b'\\').replace(b'\\"', b'"')
+            value = value.replace('\\\\', '\\').replace('\\"', '"')
 
           options[key] = value
 
         if options.get("protocol") is not None and options["protocol"] == "application/HTTP-Kerberos-session-encrypted":
-          boundary = options["boundary"]
+          boundary = options["boundary"]       
           encrypted_data = None
-          re_multipart = r'(?:--' + boundary + r'(?:(?:\r\n)|(?:--(?:\r\n)*)))'
-          for part in re.split(re_multipart, response.content):
-            if part == '':
-              continue
-            (header_raw, data) = part.split('\r\n', 1)
-            key, value = map(lambda x: x.strip(), header_raw.split(":"))
-            if key.lower() == "content-type" and value == "application/HTTP-Kerberos-session-encrypted":
-              _, orginaltype = map(lambda x: x.strip(), data.split(":"))
-              original_values = CaseInsensitiveDict()
-              for item in orginaltype.split(";"):
-                subkey, subvalue = item.split("=")
-                original_values[subkey] = subvalue
+          re_multipart = rb'(?:--' + boundary.encode('utf-8') + rb'(?:(?:\r\n)|(?:--(?:\r\n)*)))'
 
-            if key.lower() == "content-type" and value == "application/octet-stream":
+          for part in re.split(re_multipart, response.content):
+            if part == b'':
+              continue
+
+            (header_raw, data) = part.split(b'\r\n', 1)
+            key, value = map(lambda x: x.strip(), header_raw.split(b":"))
+
+            if key.lower() == b"content-type" and value == b"application/HTTP-Kerberos-session-encrypted":
+              _, orginaltype = map(lambda x: x.strip(), data.split(b":"))
+              original_values = CaseInsensitiveDict()
+              for item in orginaltype.split(b";"):
+                subkey, subvalue = item.split(b"=")
+                original_values[subkey.decode('utf-8')] = subvalue.decode('utf-8')
+
+            if key.lower() == b"content-type" and value == b"application/octet-stream":
               encrypted_data = data
 
           con = self.get_connection(req.url, None)
+          print(encrypted_data)
           decrypted = HTTPMSKerberosAdapter.krb_dict[req.url].decrypt(encrypted_data)
+          print(original_values)
           response.headers["Content-Type"] = original_values["type"] + "; charset=" + original_values["charset"]
           response.headers["Content-Length"] = len(decrypted)
           response.encoding = requests.utils.get_encoding_from_headers(response.headers)
-          response.raw = StringIO.StringIO(decrypted)
+          response.raw = BytesIO(decrypted)
           response._content_consumed = False
           response._content = False
 

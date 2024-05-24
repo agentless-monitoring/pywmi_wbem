@@ -1,8 +1,8 @@
 from setuptools import setup, find_packages
 
 setup(
-  name='pywmi_wbem',
-  version='0.2.1',
+  name='pywmi-wbem',
+  version='0.2.2',
   description='Library for WMI interaction and Nagios checks',
   author='David Voit, Alexander Lex',
   author_email='david.voit@osram-os.com, alexander.lex@osram-os.com',
@@ -11,14 +11,14 @@ setup(
     'Development Status :: 4 - Beta',
     'Intended Audience :: Developers',
     'Topic :: System :: Monitoring',
-    'Programming Language :: Python :: 2',
+    'Programming Language :: Python :: 3',
   ],
 
   install_requires=[
     'requests',
-    'argparse',
     'gssapi',
-    'pytz'
+    'pytz',
+    'lxml'
   ],
 
   packages=find_packages('src'),
