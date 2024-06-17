@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
   name='pywmi-wbem',
-  version='0.3.0',
+  version='0.3.1',
   description='Library for WMI interaction and Nagios checks',
   author='David Voit, Alexander Lex',
   author_email='david.voit@ams-osram.com, alexander.lex@ams-osram.com',

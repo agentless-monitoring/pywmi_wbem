@@ -13,13 +13,13 @@ class MSKerberosCrypt(object):
 
     self._ctx = gssapi.SecurityContext(name=gss_spn)
 
-    self.token = b"".join(base64.encodestring(self._ctx.step()).split(b"\n"))
+    self.token = b"".join(base64.encodebytes(self._ctx.step()).split(b"\n"))
 
   def get_token(self):
     return self.token
 
   def step(self, b64_token):
-    raw_intoken = base64.decodestring(b64_token.encode('utf-8'))
+    raw_intoken = base64.decodebytes(b64_token.encode('utf-8'))
     self._ctx.step(raw_intoken)
 
   def encrypt(self, data):
