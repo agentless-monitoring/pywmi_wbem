@@ -170,7 +170,7 @@ Write-Host ($ArrTasks | Select TaskName, TaskFolder, IsEnabled, LastTaskResult, 
        name = property.text
            
      if property.attrib["Name"] == "TaskFolder":
-       path = property.text.encode('utf-8')
+       path = property.text
        
        if not re.match(regex, path):
          break
@@ -238,12 +238,12 @@ Write-Host ($ArrTasks | Select TaskName, TaskFolder, IsEnabled, LastTaskResult, 
     print("Task Scheduler %s - No task found for the specified path %s" % (status, args.path))
   
   for task in unknown_tasks:
-    print(task.encode('utf-8'))
+    print(task)
   for task in failed_tasks:
-    print(task.encode('utf-8'))
+    print(task)
   for task in warning_tasks:
-    print(task.encode('utf-8'))
+    print(task)
   for task in tasks:
-    print(task.encode('utf-8'))
+    print(task)
       
   sys.exit(code)
