@@ -516,8 +516,8 @@ class WSMan():
       self.next_state()
 
   def parse_shell_output(self):
-    stdout = ""
-    stderr = ""
+    stdout = b""
+    stderr = b""
     state = ""
     sequence = 0
 
