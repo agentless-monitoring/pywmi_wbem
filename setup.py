@@ -34,6 +34,7 @@ setup(
     'nagios_checks/check_smart_wbem',
     'nagios_checks/check_swap_wbem',
     'nagios_checks/check_win_update_wbem',
-    'nagios_checks/check_win_task_wbem' 
+    'nagios_checks/check_win_task_wbem', 
+    'nagios_checks/check_directory_wbem' 
  ]
 )
