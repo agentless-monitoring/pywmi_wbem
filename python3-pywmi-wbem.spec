@@ -1,7 +1,7 @@
 %global modname pywmi-wbem
 Name:           python3-%{modname}
-Version:        0.3.1
-Release:        0%{?dist}
+Version:        0.3.2
+Release:        1%{?dist}
 Summary:        Library for WMI interaction
 
 License:        MIT
