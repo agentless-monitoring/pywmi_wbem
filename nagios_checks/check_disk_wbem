@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 import math
 import sys
@@ -144,10 +144,13 @@ if __name__ == '__main__':
     results.append(result)
 
   sort_results = sorted(results)
+
+
   if len(sort_results) > 1:
     perfs=map(lambda x: x.perf_out, sort_results)
     msgs=map(lambda x: x.msg_out, sort_results)
-    print("%s | %s\n%s" % (msgs[0], reduce(lambda x1, x2: x1+" "+x2, perfs), reduce(lambda x1, x2: x1+"\n"+x2, msgs[1:])))
+    print("%s | %s\n%s" % (next(msgs), " ".join(element for element in perfs), "\n".join(element for element in msgs)))
   else:
-    print("%s | %s" % (sort_results[0].msg_out, sort_results[0].perf_out))
+    print("%s | %s" % (next(sort_results).msg_out, next(sort_results).perf_out))
+
   sys.exit(ret_status)
