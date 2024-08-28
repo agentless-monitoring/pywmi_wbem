@@ -49,9 +49,8 @@ def convert_size(size, unit=None):
   s = round(size/p,2)
   return (str(s), size_name[i])
 
-if __name__ == '__main__':
-
-  parser = argparse.ArgumentParser(description='WMI memory usage checker')
+def check_disk():    
+  parser = argparse.ArgumentParser(description='WMI disk usage checker')
   parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)
   parser.add_argument('-W', '--warning', help="Warning level (default: 2GB)", type=SizeString, default="2GB")
   parser.add_argument('-C', '--critical', help="Critical level (default: 500MB)", type=SizeString, default="500MB")
@@ -145,12 +144,19 @@ if __name__ == '__main__':
 
   sort_results = sorted(results)
 
-
   if len(sort_results) > 1:
     perfs=map(lambda x: x.perf_out, sort_results)
     msgs=map(lambda x: x.msg_out, sort_results)
     print("%s | %s\n%s" % (next(msgs), " ".join(element for element in perfs), "\n".join(element for element in msgs)))
   else:
-    print("%s | %s" % (next(sort_results).msg_out, next(sort_results).perf_out))
+    print("%s | %s" % (sort_results[0].msg_out, sort_results[0].perf_out))
 
   sys.exit(ret_status)
+
+if __name__ == '__main__':
+  try:
+    check_disk()
+  except Exception as ex:                                                                                           
+    print("UNKNOWN: An unknown error occured. %s" % ex)                                   
+    print(traceback.format_exc())
+    sys.exit(3)
