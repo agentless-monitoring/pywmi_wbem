@@ -54,7 +54,7 @@ try {
     sys.exit(3)
 
   try:
-    stdout_xml = objectify.fromstring(stdout.encode('utf-8'))
+    stdout_xml = objectify.fromstring(stdout)
     object_path = objectify.ObjectPath("Objects")
     object_el = object_path.find(stdout_xml)
   except XMLSyntaxError as err:
