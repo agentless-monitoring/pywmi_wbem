@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 import math
 import sys
 import argparse
@@ -7,11 +7,11 @@ from lxml import objectify
 from lxml.etree import XMLSyntaxError
 
 if __name__ == '__main__':
-  parser = argparse.ArgumentParser(description='WMI Remote Ping checker')
+  parser = argparse.ArgumentParser(description='Windows Update checker')
   parser.add_argument('-H', '--host', help="Hostname to check", type=str, required=True)  
   parser.add_argument('-S', '--ssl', help="Use a TLS connection", action='store_true')
   parser.add_argument('-a', '--authorization', help="Basic Authentication user:password", type=str, default=None)
-  parser.add_argument('-c', '--update_count', help="Threshold for update  count", type=int, default=0)
+  parser.add_argument('-c', '--update_count', help="Threshold for update warning", type=int, default=0)
 
   args = parser.parse_args()
 
@@ -113,13 +113,13 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
   status = "OK"
   code = 0
 
-  if (total_count) >= update_count:
+  if total_count > update_count:
     status = "WARNING"
     code = 1    
 
-  if(total_count == 0):
-    print("UPDATE OK - No updates need to be installed")
-  elif(total_count > 1):
+  if total_count == 0:
+    print("UPDATE %s - No updates need to be installed" % status)
+  elif total_count > 1:
     print("UPDATE %s - There are in total %s Updates waiting to be installed:" % (status, total_count))
   else:
     print("UPDATE %s - There is %s Update waiting to be installed:" % (status, total_count))
