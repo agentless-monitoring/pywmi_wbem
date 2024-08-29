@@ -4,6 +4,7 @@ import math
 import sys
 import argparse
 import re
+import traceback
 from pywmi_wbem.wsman.query import WSMan, WSManFault
 
 class ResultObject(object):
