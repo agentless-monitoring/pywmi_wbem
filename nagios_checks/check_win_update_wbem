@@ -70,12 +70,10 @@ Write-Host ($toXml | ConvertTo-Xml -NoTypeInformation -Depth 3 -As String)"""
     message = ''
     if stdout:
       stdout = stdout.decode('utf-8-sig')
-      stdout = stdout.encode('utf-8')
       stdout = stdout.replace('\n', '')
       stdout = stdout.replace('\r', '')
     if stderr:
       stderr = stderr.decode('utf-8-sig')
-      stderr = stderr.encode('utf-8')
       stderr = stderr.replace('\n', '')
       stderr = stderr.replace('\r', '')
 
