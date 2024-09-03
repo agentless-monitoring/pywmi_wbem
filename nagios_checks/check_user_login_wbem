@@ -38,8 +38,8 @@ if __name__ == '__main__':
     sys.exit(3)  
  
 
-  stdout = out.get("stdout", '').decode("utf-8")
-  stderr = out.get("stderr", '').decode("utf-8")
+  stdout = out.get("stdout", b'').decode("utf-8")
+  stderr = out.get("stderr", b'').decode("utf-8")
 
   if not stdout or not user in stdout.split():  
     print("CRITICAL - %s not logged in" % user) 
